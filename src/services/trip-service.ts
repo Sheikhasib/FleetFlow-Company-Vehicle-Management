@@ -6,7 +6,7 @@ import { vehicleRepository } from '@/repositories/mock/mock-vehicle-repository';
 import { driverRepository } from '@/repositories/mock/mock-driver-repository';
 import { activityLogRepository } from '@/repositories/mock/mock-activity-log-repository';
 import { notificationRepository } from '@/repositories/mock/mock-notification-repository';
-import { VALID_TRIP_TRANSITIONS } from '@/lib/constants/domain';
+import { VALID_TRIP_TRANSITIONS, isActiveTripStatus } from '@/lib/constants/domain';
 
 export class TripService {
   /**
@@ -56,6 +56,16 @@ export class TripService {
       timestamp,
     });
 
+    // Synchronize resource operational states with actual trip lifecycle:
+    // When entering an active trip status, mark vehicle as IN_USE and driver as ON_TRIP.
+    if (isActiveTripStatus(nextStatus)) {
+      const assignment = await assignmentRepository.getByTripLegId(leg.id);
+      if (assignment && assignment.status === 'ACTIVE') {
+        await vehicleRepository.updateStatus(assignment.vehicleId, 'IN_USE');
+        await driverRepository.updateStatus(assignment.driverId, 'ON_TRIP');
+      }
+    }
+
     const request = await vehicleRequestRepository.getById(leg.requestId);
     if (request) {
       // Notify employee
@@ -89,9 +99,32 @@ export class TripService {
         ...assignment,
         status: 'COMPLETED',
       });
-      // Free vehicle and driver
-      await vehicleRepository.updateStatus(assignment.vehicleId, 'AVAILABLE');
-      await driverRepository.updateStatus(assignment.driverId, 'AVAILABLE');
+
+      // Safely release vehicle and driver:
+      // Verify resource is not concurrently participating in another legitimate active trip
+      const remainingAssignments = await assignmentRepository.getAll();
+      const allTripLegs = await tripLegRepository.getAll();
+      const legMap = new Map(allTripLegs.map((l) => [l.id, l]));
+
+      const hasOtherActiveVehicleTrip = remainingAssignments.some((a) => {
+        if (a.id === assignment.id || a.status !== 'ACTIVE' || a.vehicleId !== assignment.vehicleId) return false;
+        const otherLeg = legMap.get(a.tripLegId);
+        return otherLeg && isActiveTripStatus(otherLeg.status);
+      });
+
+      if (!hasOtherActiveVehicleTrip) {
+        await vehicleRepository.updateStatus(assignment.vehicleId, 'AVAILABLE');
+      }
+
+      const hasOtherActiveDriverTrip = remainingAssignments.some((a) => {
+        if (a.id === assignment.id || a.status !== 'ACTIVE' || a.driverId !== assignment.driverId) return false;
+        const otherLeg = legMap.get(a.tripLegId);
+        return otherLeg && isActiveTripStatus(otherLeg.status);
+      });
+
+      if (!hasOtherActiveDriverTrip) {
+        await driverRepository.updateStatus(assignment.driverId, 'AVAILABLE');
+      }
     }
 
     // 2. Synchronize Parent VehicleRequest status:

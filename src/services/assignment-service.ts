@@ -7,6 +7,7 @@ import { vehicleRequestRepository } from '@/repositories/mock/mock-vehicle-reque
 import { activityLogRepository } from '@/repositories/mock/mock-activity-log-repository';
 import { notificationRepository } from '@/repositories/mock/mock-notification-repository';
 import { useFleetFlowStore } from '@/stores/fleetflow-store';
+import { isActiveTripStatus } from '@/lib/constants/domain';
 
 export interface TimeWindow {
   start: string; // ISO 8601
@@ -209,7 +210,7 @@ export class AssignmentService {
     // Check if ALL legs for this request are assigned.
     // If so, update parent request to ASSIGNED.
     const allLegs = await tripLegRepository.getByRequestId(request.id);
-    const allAssigned = allLegs.every(
+    const allAssigned = allLegs.length > 0 && allLegs.every(
       (l) => l.id === leg.id || l.status !== 'PENDING_ASSIGNMENT'
     );
     if (allAssigned && request.status !== 'ASSIGNED') {
@@ -220,9 +221,14 @@ export class AssignmentService {
       });
     }
 
-    // Update vehicle and driver statuses to indicate active allocation
-    await vehicleRepository.updateStatus(vehicleId, 'IN_USE');
-    await driverRepository.updateStatus(driverId, 'ON_TRIP');
+    // Critical Architecture Rule:
+    // Future scheduled assignments must not immediately mark vehicles as IN_USE or drivers as ON_TRIP.
+    // Resource states reflect actual current trip lifecycle execution (managed via TripService).
+    // Only if the trip leg is already in an active operational lifecycle state should resources be IN_USE / ON_TRIP.
+    if (isActiveTripStatus(leg.status)) {
+      await vehicleRepository.updateStatus(vehicleId, 'IN_USE');
+      await driverRepository.updateStatus(driverId, 'ON_TRIP');
+    }
 
     // Audit Log
     await activityLogRepository.create({

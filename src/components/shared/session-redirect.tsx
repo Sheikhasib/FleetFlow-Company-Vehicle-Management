@@ -24,7 +24,7 @@ export function SessionRedirect() {
     } else if (currentUser.role === "EMPLOYEE") {
       router.replace("/employee/dashboard");
     } else if (currentUser.role === "ADMIN") {
-      router.replace("/demo/preview?role=ADMIN");
+      router.replace("/admin/dashboard");
     } else if (currentUser.role === "DRIVER") {
       router.replace("/demo/preview?role=DRIVER");
     } else {

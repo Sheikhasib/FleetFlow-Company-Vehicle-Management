@@ -41,6 +41,10 @@ export function GlobalDemoToolbar() {
       if (!pathname.startsWith('/employee')) {
         router.push('/employee/dashboard');
       }
+    } else if (selectedUser.role === 'ADMIN') {
+      if (!pathname.startsWith('/admin')) {
+        router.push('/admin/dashboard');
+      }
     } else {
       router.push(`/demo/preview?role=${selectedUser.role}`);
     }

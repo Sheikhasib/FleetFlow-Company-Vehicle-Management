@@ -25,6 +25,8 @@ export default function LoginPage() {
     setCurrentUser(userId);
     if (role === 'EMPLOYEE') {
       router.push('/employee/dashboard');
+    } else if (role === 'ADMIN') {
+      router.push('/admin/dashboard');
     } else {
       router.push(`/demo/preview?role=${role}`);
     }
