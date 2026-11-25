@@ -454,18 +454,18 @@ describe('EmployeeNotificationsPage Integration (Step 3B.3.3)', () => {
       // Execute Reset Demo Data
       useFleetFlowStore.getState().resetData();
 
-      // Verify David's notification is restored to unread
-      const restoredDavid = useFleetFlowStore
+      // Verify Tanvir's notification is restored to unread
+      const restoredTanvir = useFleetFlowStore
         .getState()
         .notifications.find((n) => n.id === 'notif_002');
-      expect(restoredDavid?.read).toBe(false);
+      expect(restoredTanvir?.read).toBe(false);
     });
   });
 
   describe('8. Synchronization Between Page & Header Popover', () => {
     it('marking a notification read on the page updates the header unread badge count', async () => {
       useFleetFlowStore.setState({
-        currentUserId: 'usr_emp_02', // David Chen has 1 unread notification in seed
+        currentUserId: 'usr_emp_02', // Tanvir Ahmed has 1 unread notification in seed
         isHydrated: true,
       });
 
@@ -477,7 +477,7 @@ describe('EmployeeNotificationsPage Integration (Step 3B.3.3)', () => {
       );
       expect(headerBeforeHtml).toContain('aria-label="Notifications, 1 unread"');
 
-      // Mark David's notification as read via service (used by page)
+      // Mark Tanvir's notification as read via service (used by page)
       await notificationService.markAsRead('notif_002');
 
       // Now header shows 0 unread

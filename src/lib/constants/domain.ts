@@ -36,10 +36,10 @@ export const VALID_TRIP_TRANSITIONS: Record<TripLegStatus, TripLegStatus | null>
 
 // Approved corporate locations for consistent demo routing
 export const COMPANY_LOCATIONS = [
-  'Headquarters — Metro Center',
-  'North Manufacturing Plant — Detroit',
-  'South Assembly Facility — Toledo',
-  'Tech Innovation Center — Ann Arbor',
-  'Regional Distribution Hub — Cleveland',
-  'Metro Airport Terminal 2',
+  'Corporate Headquarters — Gulshan, Dhaka',
+  'North Assembly Plant — Gazipur Industrial Area',
+  'South Manufacturing Complex — Narayanganj BSCIC',
+  'Hi-Tech Innovation Center — Kaliakoir, Gazipur',
+  'Central Distribution Hub — Tongi, Gazipur',
+  'Hazrat Shahjalal International Airport — Cargo Terminal',
 ] as const;

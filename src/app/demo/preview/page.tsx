@@ -94,7 +94,7 @@ function DemoPreviewContent() {
               }}
               className="flex-1 flex items-center justify-center gap-2"
             >
-              <span>Switch to Sarah Jenkins (Employee)</span>
+              <span>Switch to Nusrat Jahan (Employee)</span>
               <ArrowRight className="h-4 w-4" />
             </Button>
             <Button

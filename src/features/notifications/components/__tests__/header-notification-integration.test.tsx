@@ -126,7 +126,7 @@ describe('Header Notification Bell & Popover Integration (Step 3B.2.3)', () => {
   });
 
   describe('2. Persona Isolation & Unread Count', () => {
-    it('accurately computes unread badge count for usr_emp_02 (David Chen)', () => {
+    it('accurately computes unread badge count for usr_emp_02 (Tanvir Ahmed)', () => {
       useFleetFlowStore.setState({
         currentUserId: 'usr_emp_02',
         isHydrated: true,
@@ -150,7 +150,7 @@ describe('Header Notification Bell & Popover Integration (Step 3B.2.3)', () => {
 
     it('accurately shows no unread badge when employee has zero unread notifications', () => {
       useFleetFlowStore.setState({
-        currentUserId: 'usr_emp_01', // Sarah Jenkins has 1 read notification in seed
+        currentUserId: 'usr_emp_01', // Nusrat Jahan has 1 read notification in seed
         isHydrated: true,
       });
 

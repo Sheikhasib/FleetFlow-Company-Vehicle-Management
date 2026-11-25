@@ -66,12 +66,12 @@ export function EmployeeAuthGuard({ children }: EmployeeAuthGuardProps) {
             <div className="flex flex-col sm:flex-row gap-2 pt-2">
               <Button
                 onClick={() => {
-                  // Switch to default employee persona Sarah Jenkins
+                  // Switch to default employee persona Nusrat Jahan
                   setCurrentUser('usr_emp_01');
                 }}
                 className="w-full sm:w-auto flex items-center justify-center gap-2"
               >
-                <span>Switch to Sarah Jenkins (Employee)</span>
+                <span>Switch to Nusrat Jahan (Employee)</span>
                 <ArrowRight className="h-4 w-4" />
               </Button>
               <Button
