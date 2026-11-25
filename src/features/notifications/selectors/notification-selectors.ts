@@ -35,6 +35,18 @@ export function isValidAdminRequestLink(link?: string | null): boolean {
 }
 
 /**
+ * Strictly validates that a navigation link belongs to an authorized
+ * Driver internal trip-detail route or dashboard.
+ * Approved Pattern: /driver/trips/leg_[a-zA-Z0-9_-]+, /driver/dashboard, or /driver/trips
+ */
+export function isValidDriverTripLink(link?: string | null): boolean {
+  if (!link || typeof link !== 'string') return false;
+  const trimmed = link.trim();
+  const driverTripRegex = /^\/driver\/(trips\/leg_[a-zA-Z0-9_\-]+|dashboard|trips)$/;
+  return driverTripRegex.test(trimmed);
+}
+
+/**
  * Deterministically computes relative time against an explicit reference instant.
  * NEVER calls Date.now() or parameterless new Date() to get the current time.
  * If referenceTime or target timestamp is invalid, returns '—' as deterministic failure policy.
@@ -184,6 +196,61 @@ export function selectAdminNotifications(
 
   return sorted.map((n) => {
     const hasValidLink = isValidAdminRequestLink(n.link);
+    const createdDate = new Date(n.createdAt);
+    const isValidDate = !isNaN(createdDate.getTime());
+
+    return {
+      id: n.id,
+      recipientId: n.recipientId,
+      title: n.title,
+      message: n.message,
+      read: Boolean(n.read),
+      createdAt: n.createdAt,
+      relativeTime: isValidDate
+        ? calculateRelativeTime(n.createdAt, referenceTime)
+        : '—',
+      displayDateTime: isValidDate
+        ? formatDisplayDateTime(n.createdAt)
+        : '—',
+      link: hasValidLink ? n.link : undefined,
+      hasValidLink,
+    };
+  });
+}
+
+/**
+ * Selects, filters, and transforms in-app notifications for an active driver persona.
+ * Strictly isolates recipient notifications, orders them newest-first with
+ * deterministic tie-breaking, validates driver deep links, and formats timestamps.
+ *
+ * @param notifications Raw notifications array from Zustand store
+ * @param recipientId Active user ID (e.g. 'usr_drv_01')
+ * @param referenceTime Mandatory reference instant for relative time calculations
+ */
+export function selectDriverNotifications(
+  notifications: Notification[],
+  recipientId: string,
+  referenceTime: string | Date | number
+): NotificationViewModel[] {
+  if (!Array.isArray(notifications) || !recipientId) return [];
+
+  const userAlerts = notifications.filter(
+    (n) => n && n.recipientId === recipientId
+  );
+
+  const sorted = [...userAlerts].sort((a, b) => {
+    const timeA = new Date(a.createdAt).getTime();
+    const timeB = new Date(b.createdAt).getTime();
+    const safeA = isNaN(timeA) ? 0 : timeA;
+    const safeB = isNaN(timeB) ? 0 : timeB;
+    if (safeB !== safeA) {
+      return safeB - safeA;
+    }
+    return (b.id || '').localeCompare(a.id || '');
+  });
+
+  return sorted.map((n) => {
+    const hasValidLink = isValidDriverTripLink(n.link);
     const createdDate = new Date(n.createdAt);
     const isValidDate = !isNaN(createdDate.getTime());
 

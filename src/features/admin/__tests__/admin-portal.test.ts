@@ -186,10 +186,10 @@ describe('Phase 4 Admin Portal End-to-End Workflow Tests', () => {
       // First ensure any pre-existing active leg for veh_02 (leg_006_out in seed data) is cleanly completed
       const priorActiveLeg = useFleetFlowStore.getState().tripLegs.find((l) => l.id === 'leg_006_out');
       if (priorActiveLeg && priorActiveLeg.status !== 'COMPLETED') {
-        await tripService.confirmPickup('leg_006_out', 'drv_01');
-        await tripService.startTrip('leg_006_out', 'drv_01');
-        await tripService.confirmDropoff('leg_006_out', 'drv_01');
-        await tripService.completeTrip('leg_006_out', 'drv_01');
+        await tripService.confirmPickup('leg_006_out', 'usr_drv_01');
+        await tripService.startTrip('leg_006_out', 'usr_drv_01');
+        await tripService.confirmDropoff('leg_006_out', 'usr_drv_01');
+        await tripService.completeTrip('leg_006_out', 'usr_drv_01');
       }
 
       // Find an assigned trip leg
@@ -199,8 +199,10 @@ describe('Phase 4 Admin Portal End-to-End Workflow Tests', () => {
       const assignment = useFleetFlowStore.getState().assignments.find((a) => a.tripLegId === leg!.id);
       expect(assignment).toBeDefined();
 
+      const driverUser = useFleetFlowStore.getState().drivers.find((d) => d.id === assignment!.driverId)?.userId || 'usr_adm_01';
+
       // 1. Accept Trip (transitions to active operational state)
-      const acceptedLeg = await tripService.acceptTrip(leg!.id, assignment!.driverId);
+      const acceptedLeg = await tripService.acceptTrip(leg!.id, driverUser);
       expect(acceptedLeg.status).toBe('ACCEPTED');
 
       // Resource states must now be IN_USE and ON_TRIP
@@ -210,19 +212,19 @@ describe('Phase 4 Admin Portal End-to-End Workflow Tests', () => {
       expect(drvAfterAccept?.status).toBe('ON_TRIP');
 
       // 2. Arrived at Pickup
-      const arrivedLeg = await tripService.markArrivedAtPickup(leg!.id, assignment!.driverId);
+      const arrivedLeg = await tripService.markArrivedAtPickup(leg!.id, driverUser);
       expect(arrivedLeg.status).toBe('ARRIVED_AT_PICKUP');
 
       // 3. Confirm Pickup
-      const pickedUpLeg = await tripService.confirmPickup(leg!.id, assignment!.driverId);
+      const pickedUpLeg = await tripService.confirmPickup(leg!.id, driverUser);
       expect(pickedUpLeg.status).toBe('PICKED_UP');
 
       // 4. Start Trip
-      const inProgressLeg = await tripService.startTrip(leg!.id, assignment!.driverId);
+      const inProgressLeg = await tripService.startTrip(leg!.id, driverUser);
       expect(inProgressLeg.status).toBe('IN_PROGRESS');
 
       // 5. Confirm Dropoff
-      const droppedOffLeg = await tripService.confirmDropoff(leg!.id, assignment!.driverId);
+      const droppedOffLeg = await tripService.confirmDropoff(leg!.id, driverUser);
       expect(droppedOffLeg.status).toBe('DROPPED_OFF');
 
       // Canonical Semantics: While leg is DROPPED_OFF, vehicle remains IN_USE and driver remains ON_TRIP
@@ -232,7 +234,7 @@ describe('Phase 4 Admin Portal End-to-End Workflow Tests', () => {
       expect(drvWhileDropped?.status).toBe('ON_TRIP');
 
       // 6. Complete Trip
-      const completedLeg = await tripService.completeTrip(leg!.id, assignment!.driverId);
+      const completedLeg = await tripService.completeTrip(leg!.id, driverUser);
       expect(completedLeg.status).toBe('COMPLETED');
 
       // On completion, assignment status becomes COMPLETED, vehicle & driver become AVAILABLE
@@ -249,11 +251,11 @@ describe('Phase 4 Admin Portal End-to-End Workflow Tests', () => {
       // In seed data, drv_03 is operating leg_005_out. Complete it so drv_03 has no external active trips:
       const seedActiveLeg = useFleetFlowStore.getState().tripLegs.find((l) => l.id === 'leg_005_out');
       if (seedActiveLeg && seedActiveLeg.status !== 'COMPLETED') {
-        await tripService.markArrivedAtPickup('leg_005_out', 'drv_03');
-        await tripService.confirmPickup('leg_005_out', 'drv_03');
-        await tripService.startTrip('leg_005_out', 'drv_03');
-        await tripService.confirmDropoff('leg_005_out', 'drv_03');
-        await tripService.completeTrip('leg_005_out', 'drv_03');
+        await tripService.markArrivedAtPickup('leg_005_out', 'usr_drv_03');
+        await tripService.confirmPickup('leg_005_out', 'usr_drv_03');
+        await tripService.startTrip('leg_005_out', 'usr_drv_03');
+        await tripService.confirmDropoff('leg_005_out', 'usr_drv_03');
+        await tripService.completeTrip('leg_005_out', 'usr_drv_03');
       }
 
       // Find req_002 (APPROVED, round-trip with leg_002_out and leg_002_ret)
@@ -270,31 +272,31 @@ describe('Phase 4 Admin Portal End-to-End Workflow Tests', () => {
       await assignmentService.createAssignment(legRet!.id, 'veh_03', 'drv_03', 'usr_adm_01');
 
       // Start outbound leg into active operation
-      await tripService.acceptTrip(legOut!.id, 'drv_03');
-      await tripService.markArrivedAtPickup(legOut!.id, 'drv_03');
-      await tripService.confirmPickup(legOut!.id, 'drv_03');
-      await tripService.startTrip(legOut!.id, 'drv_03');
+      await tripService.acceptTrip(legOut!.id, 'usr_drv_03');
+      await tripService.markArrivedAtPickup(legOut!.id, 'usr_drv_03');
+      await tripService.confirmPickup(legOut!.id, 'usr_drv_03');
+      await tripService.startTrip(legOut!.id, 'usr_drv_03');
 
       // Concurrently start return leg into active operation (e.g. accepted status)
-      await tripService.acceptTrip(legRet!.id, 'drv_03');
+      await tripService.acceptTrip(legRet!.id, 'usr_drv_03');
 
       expect(useFleetFlowStore.getState().vehicles.find((v) => v.id === 'veh_03')?.status).toBe('IN_USE');
       expect(useFleetFlowStore.getState().drivers.find((d) => d.id === 'drv_03')?.status).toBe('ON_TRIP');
 
       // Complete outbound leg: legRet is still ACCEPTED (an active trip status),
       // so veh_03 and drv_03 must NOT be released to AVAILABLE
-      await tripService.confirmDropoff(legOut!.id, 'drv_03');
-      await tripService.completeTrip(legOut!.id, 'drv_03');
+      await tripService.confirmDropoff(legOut!.id, 'usr_drv_03');
+      await tripService.completeTrip(legOut!.id, 'usr_drv_03');
 
       expect(useFleetFlowStore.getState().vehicles.find((v) => v.id === 'veh_03')?.status).toBe('IN_USE');
       expect(useFleetFlowStore.getState().drivers.find((d) => d.id === 'drv_03')?.status).toBe('ON_TRIP');
 
       // Now advance and complete return leg: no other active trips remain for veh_03 / drv_03
-      await tripService.markArrivedAtPickup(legRet!.id, 'drv_03');
-      await tripService.confirmPickup(legRet!.id, 'drv_03');
-      await tripService.startTrip(legRet!.id, 'drv_03');
-      await tripService.confirmDropoff(legRet!.id, 'drv_03');
-      await tripService.completeTrip(legRet!.id, 'drv_03');
+      await tripService.markArrivedAtPickup(legRet!.id, 'usr_drv_03');
+      await tripService.confirmPickup(legRet!.id, 'usr_drv_03');
+      await tripService.startTrip(legRet!.id, 'usr_drv_03');
+      await tripService.confirmDropoff(legRet!.id, 'usr_drv_03');
+      await tripService.completeTrip(legRet!.id, 'usr_drv_03');
 
       expect(useFleetFlowStore.getState().vehicles.find((v) => v.id === 'veh_03')?.status).toBe('AVAILABLE');
       expect(useFleetFlowStore.getState().drivers.find((d) => d.id === 'drv_03')?.status).toBe('AVAILABLE');
@@ -308,10 +310,12 @@ describe('Phase 4 Admin Portal End-to-End Workflow Tests', () => {
       const asg = useFleetFlowStore.getState().assignments.find((a) => a.tripLegId === leg!.id);
       expect(asg).toBeDefined();
 
+      const asgDriverUser = useFleetFlowStore.getState().drivers.find((d) => d.id === asg!.driverId)?.userId || 'usr_adm_01';
+
       // Progress through PICKED_UP and IN_PROGRESS to DROPPED_OFF
-      await tripService.confirmPickup(leg!.id, asg!.driverId);
-      await tripService.startTrip(leg!.id, asg!.driverId);
-      const droppedLeg = await tripService.confirmDropoff(leg!.id, asg!.driverId);
+      await tripService.confirmPickup(leg!.id, asgDriverUser);
+      await tripService.startTrip(leg!.id, asgDriverUser);
+      const droppedLeg = await tripService.confirmDropoff(leg!.id, asgDriverUser);
       expect(droppedLeg.status).toBe('DROPPED_OFF');
 
       // 1. Operational Resource Occupancy: Vehicle remains IN_USE and Driver remains ON_TRIP during DROPPED_OFF
@@ -332,7 +336,7 @@ describe('Phase 4 Admin Portal End-to-End Workflow Tests', () => {
       expect(employeeDroppedTrips.some((t) => t.legId === leg!.id)).toBe(true);
 
       // 4. Exact release transition: Resources become AVAILABLE only upon completeTrip()
-      await tripService.completeTrip(leg!.id, asg!.driverId);
+      await tripService.completeTrip(leg!.id, asgDriverUser);
 
       const asgCompleted = useFleetFlowStore.getState().assignments.find((a) => a.id === asg!.id);
       expect(asgCompleted?.status).toBe('COMPLETED');

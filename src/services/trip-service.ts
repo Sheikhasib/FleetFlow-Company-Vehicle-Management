@@ -7,6 +7,7 @@ import { driverRepository } from '@/repositories/mock/mock-driver-repository';
 import { activityLogRepository } from '@/repositories/mock/mock-activity-log-repository';
 import { notificationRepository } from '@/repositories/mock/mock-notification-repository';
 import { VALID_TRIP_TRANSITIONS, isActiveTripStatus } from '@/lib/constants/domain';
+import { useFleetFlowStore } from '@/stores/fleetflow-store';
 
 export class TripService {
   /**
@@ -26,18 +27,63 @@ export class TripService {
 
   private async advanceTripStatus(
     tripLegId: string,
-    driverId: string,
+    actorUserId: string,
     nextStatus: TripLegStatus,
     actionName: string,
     actionNarrative: string
   ): Promise<TripLeg> {
+    // 1. Resolve TripLeg
     const leg = await tripLegRepository.getById(tripLegId);
     if (!leg) {
       throw new Error(`Trip leg not found: ${tripLegId}`);
     }
 
+    // 2. Validate transition legality
     this.validateTransition(leg.status, nextStatus);
 
+    // 3. Resolve active assignment
+    const assignment = await assignmentRepository.getByTripLegId(leg.id);
+    if (!assignment || assignment.status !== 'ACTIVE') {
+      throw new Error(`No active assignment found for trip leg: ${tripLegId}`);
+    }
+
+    // 4. Resolve actor exclusively through an existing User record (User.id === actorUserId)
+    const users = useFleetFlowStore.getState().users;
+    const user = users.find((u) => u.id === actorUserId);
+    if (!user) {
+      throw new Error(`Unauthorized: Invalid or unknown actor user ID: ${actorUserId}`);
+    }
+
+    // 5. Evaluate role-based authorization
+    let resolvedActorId: string;
+
+    if (user.role === 'ADMIN') {
+      // Authorized Admin workflow: preserves Phase 4 Admin trip monitoring & advancement
+      resolvedActorId = user.id;
+    } else if (user.role === 'DRIVER') {
+      // Driver workflow: resolve driver profile by Driver.userId === User.id
+      const drivers = useFleetFlowStore.getState().drivers;
+      const driver = drivers.find((d) => d.userId === user.id);
+      if (!driver) {
+        throw new Error(
+          `Unauthorized: No driver profile found for user ${user.id} (${user.name}).`
+        );
+      }
+      // Require Driver.id === Assignment.driverId
+      if (assignment.driverId !== driver.id) {
+        throw new Error(
+          `Unauthorized: Driver ${driver.id} (${user.name}) is not assigned to trip leg ${tripLegId}. Assigned driver is ${assignment.driverId}.`
+        );
+      }
+      resolvedActorId = user.id;
+    } else {
+      // Reject EMPLOYEE and any other non-driver/non-admin roles
+      throw new Error(
+        `Unauthorized: User ${user.id} (${user.name}) with role ${user.role} cannot advance trip status.`
+      );
+    }
+
+    // All authorization and validation checks passed. Now apply mutations.
     const timestamp = new Date().toISOString();
     const updatedLeg: TripLeg = {
       ...leg,
@@ -50,7 +96,7 @@ export class TripService {
       id: `act_${Date.now()}`,
       requestId: leg.requestId,
       tripLegId: leg.id,
-      actorId: driverId,
+      actorId: resolvedActorId,
       action: actionName,
       description: actionNarrative,
       timestamp,
@@ -59,11 +105,8 @@ export class TripService {
     // Synchronize resource operational states with actual trip lifecycle:
     // When entering an active trip status, mark vehicle as IN_USE and driver as ON_TRIP.
     if (isActiveTripStatus(nextStatus)) {
-      const assignment = await assignmentRepository.getByTripLegId(leg.id);
-      if (assignment && assignment.status === 'ACTIVE') {
-        await vehicleRepository.updateStatus(assignment.vehicleId, 'IN_USE');
-        await driverRepository.updateStatus(assignment.driverId, 'ON_TRIP');
-      }
+      await vehicleRepository.updateStatus(assignment.vehicleId, 'IN_USE');
+      await driverRepository.updateStatus(assignment.driverId, 'ON_TRIP');
     }
 
     const request = await vehicleRequestRepository.getById(leg.requestId);
@@ -165,10 +208,10 @@ export class TripService {
   }
 
   // Driver action 1: Accept assignment
-  async acceptTrip(tripLegId: string, driverId: string): Promise<TripLeg> {
+  async acceptTrip(tripLegId: string, actorUserId: string): Promise<TripLeg> {
     return this.advanceTripStatus(
       tripLegId,
-      driverId,
+      actorUserId,
       'ACCEPTED',
       'TRIP_ACCEPTED',
       'Driver accepted the trip leg assignment.'
@@ -176,10 +219,10 @@ export class TripService {
   }
 
   // Driver action 2: Mark arrival at pickup
-  async markArrivedAtPickup(tripLegId: string, driverId: string): Promise<TripLeg> {
+  async markArrivedAtPickup(tripLegId: string, actorUserId: string): Promise<TripLeg> {
     return this.advanceTripStatus(
       tripLegId,
-      driverId,
+      actorUserId,
       'ARRIVED_AT_PICKUP',
       'ARRIVED_AT_PICKUP',
       'Driver marked arrival at the designated pickup location.'
@@ -187,10 +230,10 @@ export class TripService {
   }
 
   // Driver action 3: Confirm passenger boarding
-  async confirmPickup(tripLegId: string, driverId: string): Promise<TripLeg> {
+  async confirmPickup(tripLegId: string, actorUserId: string): Promise<TripLeg> {
     return this.advanceTripStatus(
       tripLegId,
-      driverId,
+      actorUserId,
       'PICKED_UP',
       'PASSENGERS_PICKED_UP',
       'Driver confirmed passenger pickup and boarding.'
@@ -198,10 +241,10 @@ export class TripService {
   }
 
   // Driver action 4: Start transit
-  async startTrip(tripLegId: string, driverId: string): Promise<TripLeg> {
+  async startTrip(tripLegId: string, actorUserId: string): Promise<TripLeg> {
     return this.advanceTripStatus(
       tripLegId,
-      driverId,
+      actorUserId,
       'IN_PROGRESS',
       'TRIP_STARTED',
       'Driver started the trip leg journey.'
@@ -209,10 +252,10 @@ export class TripService {
   }
 
   // Driver action 5: Confirm dropoff
-  async confirmDropoff(tripLegId: string, driverId: string): Promise<TripLeg> {
+  async confirmDropoff(tripLegId: string, actorUserId: string): Promise<TripLeg> {
     return this.advanceTripStatus(
       tripLegId,
-      driverId,
+      actorUserId,
       'DROPPED_OFF',
       'PASSENGERS_DROPPED_OFF',
       'Driver arrived at destination and confirmed passenger drop-off.'
@@ -220,10 +263,10 @@ export class TripService {
   }
 
   // Driver action 6: Complete trip leg
-  async completeTrip(tripLegId: string, driverId: string): Promise<TripLeg> {
+  async completeTrip(tripLegId: string, actorUserId: string): Promise<TripLeg> {
     return this.advanceTripStatus(
       tripLegId,
-      driverId,
+      actorUserId,
       'COMPLETED',
       'TRIP_LEG_COMPLETED',
       'Driver finalized and completed the trip leg.'

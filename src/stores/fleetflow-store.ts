@@ -14,6 +14,7 @@ import {
   DriverStatus,
   RequestBundle,
 } from '@/types/domain';
+import { DriverPendingAction } from '@/features/driver/types/offline-types';
 import { initialSeedData, getSeedData } from '@/data/seed/seed-data';
 
 export interface FleetFlowState {
@@ -28,6 +29,10 @@ export interface FleetFlowState {
   activityLogs: ActivityLog[];
   notifications: Notification[];
 
+  // Offline capability & Pending Actions (Stage 5.3)
+  pendingActions: DriverPendingAction[];
+  isSimulatedOffline: boolean;
+
   // Session & Demo state
   currentUserId: string;
   isHydrated: boolean;
@@ -35,6 +40,13 @@ export interface FleetFlowState {
   // Actions
   setHydrated: (val: boolean) => void;
   setCurrentUser: (userId: string) => void;
+  setSimulatedOffline: (val: boolean) => void;
+
+  // Offline Queue Actions
+  enqueuePendingAction: (action: DriverPendingAction) => void;
+  updatePendingAction: (id: string, updates: Partial<DriverPendingAction>) => void;
+  removePendingAction: (id: string) => void;
+  clearPendingActionsForUser: (userId: string) => void;
   
   // Atomic Request Creation
   createRequestBundle: (bundle: RequestBundle) => void;
@@ -75,12 +87,40 @@ export const useFleetFlowStore = create<FleetFlowState>()(
       passengers: initialSeedData.passengers,
       activityLogs: initialSeedData.activityLogs,
       notifications: initialSeedData.notifications,
+      pendingActions: [],
+      isSimulatedOffline: false,
 
       currentUserId: 'usr_adm_01', // Default demo user
       isHydrated: false,
 
       setHydrated: (val: boolean) => set({ isHydrated: val }),
       setCurrentUser: (userId: string) => set({ currentUserId: userId }),
+      setSimulatedOffline: (val: boolean) => set({ isSimulatedOffline: val }),
+
+      enqueuePendingAction: (action: DriverPendingAction) =>
+        set((state) => ({
+          // Append in FIFO order, avoiding duplicates
+          pendingActions: state.pendingActions.some((a) => a.id === action.id)
+            ? state.pendingActions
+            : [...state.pendingActions, action],
+        })),
+
+      updatePendingAction: (id: string, updates: Partial<DriverPendingAction>) =>
+        set((state) => ({
+          pendingActions: state.pendingActions.map((a) =>
+            a.id === id ? { ...a, ...updates } : a
+          ),
+        })),
+
+      removePendingAction: (id: string) =>
+        set((state) => ({
+          pendingActions: state.pendingActions.filter((a) => a.id !== id),
+        })),
+
+      clearPendingActionsForUser: (userId: string) =>
+        set((state) => ({
+          pendingActions: state.pendingActions.filter((a) => a.actorUserId !== userId),
+        })),
 
       createRequestBundle: (bundle: RequestBundle) =>
         set((state) => ({
@@ -153,15 +193,46 @@ export const useFleetFlowStore = create<FleetFlowState>()(
           passengers: freshSeed.passengers,
           activityLogs: freshSeed.activityLogs,
           notifications: freshSeed.notifications,
+          pendingActions: [],
+          isSimulatedOffline: false,
         });
       },
     }),
     {
       name: 'fleetflow_state_storage',
+      version: 1,
       storage: createJSONStorage(() => {
         // Safe SSR check for Next.js App Router
         if (typeof window !== 'undefined') {
-          return window.localStorage;
+          return {
+            getItem: (name: string) => {
+              try {
+                const item = window.localStorage.getItem(name);
+                if (!item) return null;
+                // Validate JSON syntax
+                JSON.parse(item);
+                return item;
+              } catch {
+                console.warn(
+                  `[FleetFlow Persistence] Corrupted storage detected for ${name}. Resetting.`
+                );
+                window.localStorage.removeItem(name);
+                return null;
+              }
+            },
+            setItem: (name: string, value: string) => {
+              try {
+                window.localStorage.setItem(name, value);
+              } catch (e) {
+                console.error(`[FleetFlow Persistence] Failed to save state to localStorage:`, e);
+              }
+            },
+            removeItem: (name: string) => {
+              try {
+                window.localStorage.removeItem(name);
+              } catch {}
+            },
+          };
         }
         return {
           getItem: () => null,
@@ -169,6 +240,20 @@ export const useFleetFlowStore = create<FleetFlowState>()(
           removeItem: () => {},
         };
       }),
+      migrate: (persistedState: unknown, version: number) => {
+        if (!persistedState || typeof persistedState !== 'object') {
+          return persistedState as unknown as FleetFlowState;
+        }
+        const stateObj = persistedState as Record<string, unknown>;
+        if (version === 0) {
+          return {
+            ...stateObj,
+            pendingActions: Array.isArray(stateObj.pendingActions) ? stateObj.pendingActions : [],
+            isSimulatedOffline: false,
+          } as unknown as FleetFlowState;
+        }
+        return stateObj as unknown as FleetFlowState;
+      },
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.setHydrated(true);

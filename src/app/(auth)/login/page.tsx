@@ -27,6 +27,8 @@ export default function LoginPage() {
       router.push('/employee/dashboard');
     } else if (role === 'ADMIN') {
       router.push('/admin/dashboard');
+    } else if (role === 'DRIVER') {
+      router.push('/driver/dashboard');
     } else {
       router.push(`/demo/preview?role=${role}`);
     }

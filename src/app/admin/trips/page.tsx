@@ -48,6 +48,7 @@ export default function AdminTripMonitoringPage() {
   const drivers = useFleetFlowStore((s) => s.drivers);
   const users = useFleetFlowStore((s) => s.users);
   const activityLogs = useFleetFlowStore((s) => s.activityLogs);
+  const currentUserId = useFleetFlowStore((s) => s.currentUserId);
 
   const reqMap = React.useMemo(() => new Map(requests.map((r) => [r.id, r])), [requests]);
   const userMap = React.useMemo(() => new Map(users.map((u) => [u.id, u])), [users]);
@@ -144,30 +145,35 @@ export default function AdminTripMonitoringPage() {
 
   // Handle advancing driver status via tripService
   const handleAdvanceStatus = async (leg: TripLeg, nextAction: string) => {
-    const asg = assignmentMap.get(leg.id);
-    const driverId = asg?.driverId || 'drv_01';
+    // Resolve actor exclusively from authenticated session; never substitute a hardcoded ID
+    if (!currentUserId) {
+      setActionFeedback('Error: Authenticated admin session required to advance trip status.');
+      return;
+    }
+
+    const actorUserId = currentUserId;
 
     setIsUpdatingStatus(true);
     setActionFeedback(null);
 
     try {
       if (nextAction === 'ACCEPT') {
-        await tripService.acceptTrip(leg.id, driverId);
+        await tripService.acceptTrip(leg.id, actorUserId);
         setActionFeedback('Trip marked ACCEPTED by driver.');
       } else if (nextAction === 'ARRIVE_PICKUP') {
-        await tripService.markArrivedAtPickup(leg.id, driverId);
+        await tripService.markArrivedAtPickup(leg.id, actorUserId);
         setActionFeedback('Driver reported ARRIVED AT PICKUP.');
       } else if (nextAction === 'CONFIRM_PICKUP') {
-        await tripService.confirmPickup(leg.id, driverId);
+        await tripService.confirmPickup(leg.id, actorUserId);
         setActionFeedback('Passengers confirmed boarded (PICKED UP).');
       } else if (nextAction === 'START_TRIP') {
-        await tripService.startTrip(leg.id, driverId);
+        await tripService.startTrip(leg.id, actorUserId);
         setActionFeedback('Trip started; vehicle in transit (IN PROGRESS).');
       } else if (nextAction === 'CONFIRM_DROPOFF') {
-        await tripService.confirmDropoff(leg.id, driverId);
+        await tripService.confirmDropoff(leg.id, actorUserId);
         setActionFeedback('Driver confirmed arrival at destination (DROPPED OFF).');
       } else if (nextAction === 'COMPLETE') {
-        await tripService.completeTrip(leg.id, driverId);
+        await tripService.completeTrip(leg.id, actorUserId);
         setActionFeedback('Trip finalized and marked COMPLETED.');
       }
     } catch (err: unknown) {
