@@ -1,0 +1,577 @@
+{
+  "viewports": {
+    "390x844": {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scroll": {
+        "scrollWidth": 390,
+        "hasHorizontalOverflow": false
+      },
+      "toolbar": {
+        "height": 28,
+        "top": 0
+      },
+      "header": {
+        "height": 49,
+        "top": 28
+      },
+      "totalTopOverhead": 77,
+      "bottomNav": {
+        "height": 64,
+        "top": 780,
+        "bottom": 844,
+        "items": [
+          {
+            "text": "Dashboard",
+            "rect": {
+              "left": 48.453125,
+              "right": 112.453125,
+              "top": 789.625,
+              "bottom": 835.375,
+              "width": 64,
+              "height": 45.75
+            },
+            "ariaCurrent": "page"
+          },
+          {
+            "text": "New Request",
+            "rect": {
+              "left": 161.359375,
+              "right": 225.40625,
+              "top": 771.5,
+              "bottom": 833.5,
+              "width": 64.046875,
+              "height": 62
+            },
+            "ariaCurrent": null
+          },
+          {
+            "text": "My Requests",
+            "rect": {
+              "left": 274.328125,
+              "right": 341.546875,
+              "top": 789.625,
+              "bottom": 835.375,
+              "width": 67.21875,
+              "height": 45.75
+            },
+            "ariaCurrent": null
+          }
+        ]
+      },
+      "main": {
+        "paddingTop": "12px",
+        "paddingBottom": "96px",
+        "paddingLeft": "16px",
+        "paddingRight": "16px"
+      },
+      "headerNavLinks": [
+        {
+          "text": "Dashboard",
+          "rect": {},
+          "visible": true
+        },
+        {
+          "text": "My Requests",
+          "rect": {},
+          "visible": true
+        }
+      ],
+      "scrollOcclusion": {
+        "hasOcclusion": false,
+        "navTop": 780,
+        "lowestBottom": 731,
+        "clearance": 49,
+        "lowestEl": "inline-flex items-center justify-center whitespace-nowrap font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.99] hover:bg-muted hover:text-foreground active:bg-muted/80 relative h-9 rounded-md px-3 after:absolute after:top-1/2 after:left-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:min-w-[44px] after:min-h-[44px] after:w-full after:h-full after:content-[\"\"] text-xs text-primary self-end sm:self-center"
+      }
+    },
+    "360x640": {
+      "viewport": {
+        "width": 360,
+        "height": 640
+      },
+      "scroll": {
+        "scrollWidth": 360,
+        "hasHorizontalOverflow": false
+      },
+      "toolbar": {
+        "height": 28,
+        "top": 0
+      },
+      "header": {
+        "height": 49,
+        "top": 28
+      },
+      "totalTopOverhead": 77,
+      "bottomNav": {
+        "height": 64,
+        "top": 576,
+        "bottom": 640,
+        "items": [
+          {
+            "text": "Dashboard",
+            "rect": {
+              "left": 43.453125,
+              "right": 107.453125,
+              "top": 585.625,
+              "bottom": 631.375,
+              "width": 64,
+              "height": 45.75
+            },
+            "ariaCurrent": "page"
+          },
+          {
+            "text": "New Request",
+            "rect": {
+              "left": 146.359375,
+              "right": 210.40625,
+              "top": 567.5,
+              "bottom": 629.5,
+              "width": 64.046875,
+              "height": 62
+            },
+            "ariaCurrent": null
+          },
+          {
+            "text": "My Requests",
+            "rect": {
+              "left": 249.328125,
+              "right": 316.546875,
+              "top": 585.625,
+              "bottom": 631.375,
+              "width": 67.21875,
+              "height": 45.75
+            },
+            "ariaCurrent": null
+          }
+        ]
+      },
+      "main": {
+        "paddingTop": "12px",
+        "paddingBottom": "96px",
+        "paddingLeft": "16px",
+        "paddingRight": "16px"
+      },
+      "headerNavLinks": [
+        {
+          "text": "Dashboard",
+          "rect": {},
+          "visible": true
+        },
+        {
+          "text": "My Requests",
+          "rect": {},
+          "visible": true
+        }
+      ],
+      "scrollOcclusion": {
+        "hasOcclusion": false,
+        "navTop": 576,
+        "lowestBottom": 527,
+        "clearance": 49,
+        "lowestEl": "inline-flex items-center justify-center whitespace-nowrap font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.99] hover:bg-muted hover:text-foreground active:bg-muted/80 relative h-9 rounded-md px-3 after:absolute after:top-1/2 after:left-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:min-w-[44px] after:min-h-[44px] after:w-full after:h-full after:content-[\"\"] text-xs text-primary self-end sm:self-center"
+      }
+    },
+    "768x1024": {
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "scroll": {
+        "scrollWidth": 753,
+        "hasHorizontalOverflow": false
+      },
+      "toolbar": {
+        "height": 36,
+        "top": 0
+      },
+      "header": {
+        "height": 57,
+        "top": 36
+      },
+      "totalTopOverhead": 93,
+      "bottomNav": null,
+      "main": {
+        "paddingTop": "24px",
+        "paddingBottom": "32px",
+        "paddingLeft": "24px",
+        "paddingRight": "24px"
+      },
+      "headerNavLinks": [
+        {
+          "text": "Dashboard",
+          "rect": {},
+          "visible": true
+        },
+        {
+          "text": "My Requests",
+          "rect": {},
+          "visible": true
+        }
+      ],
+      "scrollOcclusion": {
+        "hasOcclusion": false,
+        "note": "No bottom nav visible"
+      }
+    },
+    "1440x900": {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "scroll": {
+        "scrollWidth": 1425,
+        "hasHorizontalOverflow": false
+      },
+      "toolbar": {
+        "height": 36,
+        "top": 0
+      },
+      "header": {
+        "height": 65,
+        "top": 36
+      },
+      "totalTopOverhead": 101,
+      "bottomNav": null,
+      "main": {
+        "paddingTop": "32px",
+        "paddingBottom": "32px",
+        "paddingLeft": "32px",
+        "paddingRight": "32px"
+      },
+      "headerNavLinks": [
+        {
+          "text": "Dashboard",
+          "rect": {},
+          "visible": true
+        },
+        {
+          "text": "My Requests",
+          "rect": {},
+          "visible": true
+        }
+      ],
+      "scrollOcclusion": {
+        "hasOcclusion": false,
+        "note": "No bottom nav visible"
+      }
+    }
+  },
+  "routeActiveStates": {
+    "desktop_/employee/dashboard": [
+      {
+        "tag": "A",
+        "text": "Dashboard",
+        "href": "/employee/dashboard",
+        "location": "header"
+      },
+      {
+        "tag": "A",
+        "text": "Dashboard",
+        "href": "/employee/dashboard",
+        "location": "nav"
+      }
+    ],
+    "desktop_/employee/requests": [
+      {
+        "tag": "A",
+        "text": "My Requests",
+        "href": "/employee/requests",
+        "location": "header"
+      },
+      {
+        "tag": "A",
+        "text": "My Requests",
+        "href": "/employee/requests",
+        "location": "nav"
+      }
+    ],
+    "desktop_/employee/requests/new": [
+      {
+        "tag": "A",
+        "text": "New Request",
+        "href": "/employee/requests/new",
+        "location": "nav"
+      }
+    ],
+    "desktop_/employee/requests/req_001": [
+      {
+        "tag": "A",
+        "text": "My Requests",
+        "href": "/employee/requests",
+        "location": "header"
+      },
+      {
+        "tag": "A",
+        "text": "My Requests",
+        "href": "/employee/requests",
+        "location": "nav"
+      }
+    ],
+    "mobile_/employee/dashboard": [
+      {
+        "tag": "A",
+        "text": "Dashboard",
+        "href": "/employee/dashboard",
+        "location": "header"
+      },
+      {
+        "tag": "A",
+        "text": "Dashboard",
+        "href": "/employee/dashboard",
+        "location": "bottom-nav"
+      }
+    ],
+    "mobile_/employee/requests": [
+      {
+        "tag": "A",
+        "text": "My Requests",
+        "href": "/employee/requests",
+        "location": "header"
+      },
+      {
+        "tag": "A",
+        "text": "My Requests",
+        "href": "/employee/requests",
+        "location": "bottom-nav"
+      }
+    ],
+    "mobile_/employee/requests/new": [
+      {
+        "tag": "A",
+        "text": "New Request",
+        "href": "/employee/requests/new",
+        "location": "bottom-nav"
+      }
+    ],
+    "mobile_/employee/requests/req_001": [
+      {
+        "tag": "A",
+        "text": "My Requests",
+        "href": "/employee/requests",
+        "location": "header"
+      },
+      {
+        "tag": "A",
+        "text": "My Requests",
+        "href": "/employee/requests",
+        "location": "bottom-nav"
+      }
+    ]
+  },
+  "overlapAudit": {
+    "toolbar": {
+      "name": "toolbar",
+      "items": [
+        {
+          "text": "Sarah Jenkins (Powertrain Engineering)David Chen (Supply Chain & Logistics)Emily Rodriguez (Quality Assurance)Alex Morgan (Admin)Michael Scott (Admin)Marcus Vance (Driver)James Wilson (Driver)Carlos Mendez (Driver)",
+          "rect": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "text": "Reset Demo",
+          "rect": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "text": "Sarah JenkinsEMP",
+          "rect": {
+            "left": 26,
+            "right": 181.8125,
+            "top": 2.25,
+            "bottom": 24.75,
+            "width": 155.8125,
+            "height": 22.5
+          }
+        },
+        {
+          "text": "Reset demo data",
+          "rect": {
+            "left": 356,
+            "right": 378,
+            "top": 2.5,
+            "bottom": 24.5,
+            "width": 22,
+            "height": 22
+          }
+        }
+      ],
+      "overlaps": []
+    },
+    "header": {
+      "name": "header",
+      "items": [
+        {
+          "text": "FleetFlowEmployee Portal",
+          "rect": {
+            "left": 16,
+            "right": 115.015625,
+            "top": 38,
+            "bottom": 66,
+            "width": 99.015625,
+            "height": 28
+          }
+        },
+        {
+          "text": "Dashboard",
+          "rect": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "text": "My Requests",
+          "rect": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "text": "New Request",
+          "rect": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "text": "Switch Persona or Sign Out",
+          "rect": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "text": "New",
+          "rect": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "text": "Switch Persona or Sign Out",
+          "rect": {
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "bottom": 0,
+            "width": 0,
+            "height": 0
+          }
+        },
+        {
+          "text": "Switch Persona or Sign Out",
+          "rect": {
+            "left": 330,
+            "right": 374,
+            "top": 30,
+            "bottom": 74,
+            "width": 44,
+            "height": 44
+          }
+        }
+      ],
+      "overlaps": []
+    },
+    "bottomNav": {
+      "name": "bottomNav",
+      "items": [
+        {
+          "text": "Dashboard",
+          "rect": {
+            "left": 48.453125,
+            "right": 112.453125,
+            "top": 789.625,
+            "bottom": 835.375,
+            "width": 64,
+            "height": 45.75
+          }
+        },
+        {
+          "text": "New Request",
+          "rect": {
+            "left": 161.359375,
+            "right": 225.40625,
+            "top": 771.5,
+            "bottom": 833.5,
+            "width": 64.046875,
+            "height": 62
+          }
+        },
+        {
+          "text": "My Requests",
+          "rect": {
+            "left": 274.328125,
+            "right": 341.546875,
+            "top": 789.625,
+            "bottom": 835.375,
+            "width": 67.21875,
+            "height": 45.75
+          }
+        }
+      ],
+      "overlaps": []
+    }
+  },
+  "dialogAudit": {
+    "personaDialog": {
+      "dialogRect": {
+        "left": 0,
+        "right": 390,
+        "top": 0,
+        "bottom": 844,
+        "width": 390,
+        "height": 844
+      },
+      "isWithinViewport": true,
+      "windowW": 390,
+      "windowH": 844
+    },
+    "resetDialog": {
+      "dialogRect": {
+        "left": 0,
+        "right": 390,
+        "top": 0,
+        "bottom": 844,
+        "width": 390,
+        "height": 844
+      },
+      "isWithinViewport": true,
+      "windowW": 390,
+      "windowH": 844
+    }
+  }
+}

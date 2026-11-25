@@ -1,0 +1,152 @@
+{
+  "results": {
+    "desktop": {
+      "windowWidth": 1440,
+      "bodyScrollWidth": 1425,
+      "hasHorizontalOverflow": false,
+      "toolbar": {
+        "offsetHeight": 36,
+        "offsetTop": 0,
+        "visible": true
+      },
+      "header": {
+        "offsetHeight": 65,
+        "offsetTop": 36,
+        "visible": true
+      },
+      "bottomNav": {
+        "offsetHeight": 0,
+        "visible": false
+      },
+      "mainPaddingBottom": "32px",
+      "activeNavLinks": [
+        {
+          "tag": "A",
+          "text": "Dashboard",
+          "href": "/employee/dashboard"
+        },
+        {
+          "tag": "A",
+          "text": "Dashboard",
+          "href": "/employee/dashboard"
+        }
+      ]
+    },
+    "tablet": {
+      "windowWidth": 768,
+      "bodyScrollWidth": 753,
+      "hasHorizontalOverflow": false,
+      "toolbar": {
+        "offsetHeight": 36,
+        "offsetTop": 0,
+        "visible": true
+      },
+      "header": {
+        "offsetHeight": 57,
+        "offsetTop": 36,
+        "visible": true
+      },
+      "bottomNav": {
+        "offsetHeight": 0,
+        "visible": false
+      },
+      "mainPaddingBottom": "32px",
+      "activeNavLinks": [
+        {
+          "tag": "A",
+          "text": "Dashboard",
+          "href": "/employee/dashboard"
+        },
+        {
+          "tag": "A",
+          "text": "Dashboard",
+          "href": "/employee/dashboard"
+        }
+      ]
+    },
+    "mobile": {
+      "windowWidth": 390,
+      "bodyScrollWidth": 390,
+      "hasHorizontalOverflow": false,
+      "toolbar": {
+        "offsetHeight": 28,
+        "offsetTop": 0,
+        "visible": true
+      },
+      "header": {
+        "offsetHeight": 49,
+        "offsetTop": 28,
+        "visible": true
+      },
+      "bottomNav": {
+        "offsetHeight": 64,
+        "visible": true
+      },
+      "mainPaddingBottom": "96px",
+      "activeNavLinks": [
+        {
+          "tag": "A",
+          "text": "Dashboard",
+          "href": "/employee/dashboard"
+        },
+        {
+          "tag": "A",
+          "text": "Dashboard",
+          "href": "/employee/dashboard"
+        }
+      ]
+    },
+    "compact_mobile": {
+      "windowWidth": 360,
+      "bodyScrollWidth": 360,
+      "hasHorizontalOverflow": false,
+      "toolbar": {
+        "offsetHeight": 28,
+        "offsetTop": 0,
+        "visible": true
+      },
+      "header": {
+        "offsetHeight": 49,
+        "offsetTop": 28,
+        "visible": true
+      },
+      "bottomNav": {
+        "offsetHeight": 64,
+        "visible": true
+      },
+      "mainPaddingBottom": "96px",
+      "activeNavLinks": [
+        {
+          "tag": "A",
+          "text": "Dashboard",
+          "href": "/employee/dashboard"
+        },
+        {
+          "tag": "A",
+          "text": "Dashboard",
+          "href": "/employee/dashboard"
+        }
+      ]
+    }
+  },
+  "targetsAudit": [
+    {
+      "text": "Dashboard",
+      "width": 64,
+      "height": 45.75,
+      "isCompliant": true
+    },
+    {
+      "text": "New Request",
+      "width": 64.046875,
+      "height": 62,
+      "isCompliant": true
+    },
+    {
+      "text": "My Requests",
+      "width": 67.21875,
+      "height": 45.75,
+      "isCompliant": true
+    }
+  ]
+}

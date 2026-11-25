@@ -1,0 +1,179 @@
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import {
+  User,
+  Vehicle,
+  Driver,
+  VehicleRequest,
+  TripLeg,
+  Assignment,
+  Passenger,
+  ActivityLog,
+  Notification,
+  VehicleStatus,
+  DriverStatus,
+  RequestBundle,
+} from '@/types/domain';
+import { initialSeedData, getSeedData } from '@/data/seed/seed-data';
+
+export interface FleetFlowState {
+  // Application Data (Single Source of Truth)
+  users: User[];
+  vehicles: Vehicle[];
+  drivers: Driver[];
+  requests: VehicleRequest[];
+  tripLegs: TripLeg[];
+  assignments: Assignment[];
+  passengers: Passenger[];
+  activityLogs: ActivityLog[];
+  notifications: Notification[];
+
+  // Session & Demo state
+  currentUserId: string;
+  isHydrated: boolean;
+
+  // Actions
+  setHydrated: (val: boolean) => void;
+  setCurrentUser: (userId: string) => void;
+  
+  // Atomic Request Creation
+  createRequestBundle: (bundle: RequestBundle) => void;
+
+  // Entity Mutations (Used by Repositories and Services)
+  addRequest: (request: VehicleRequest) => void;
+  updateRequest: (request: VehicleRequest) => void;
+  
+  addTripLeg: (tripLeg: TripLeg) => void;
+  updateTripLeg: (tripLeg: TripLeg) => void;
+  
+  addAssignment: (assignment: Assignment) => void;
+  updateAssignment: (assignment: Assignment) => void;
+  
+  addPassenger: (passenger: Passenger) => void;
+  
+  addActivityLog: (log: ActivityLog) => void;
+  
+  addNotification: (notification: Notification) => void;
+  markNotificationRead: (notificationId: string) => void;
+  
+  updateVehicleStatus: (vehicleId: string, status: VehicleStatus) => void;
+  updateDriverStatus: (driverId: string, status: DriverStatus) => void;
+
+  // Reset demo data to pristine relative seed data
+  resetData: () => void;
+}
+
+export const useFleetFlowStore = create<FleetFlowState>()(
+  persist(
+    (set, get) => ({
+      users: initialSeedData.users,
+      vehicles: initialSeedData.vehicles,
+      drivers: initialSeedData.drivers,
+      requests: initialSeedData.requests,
+      tripLegs: initialSeedData.tripLegs,
+      assignments: initialSeedData.assignments,
+      passengers: initialSeedData.passengers,
+      activityLogs: initialSeedData.activityLogs,
+      notifications: initialSeedData.notifications,
+
+      currentUserId: 'usr_adm_01', // Default demo user
+      isHydrated: false,
+
+      setHydrated: (val: boolean) => set({ isHydrated: val }),
+      setCurrentUser: (userId: string) => set({ currentUserId: userId }),
+
+      createRequestBundle: (bundle: RequestBundle) =>
+        set((state) => ({
+          requests: [bundle.request, ...state.requests],
+          tripLegs: [...state.tripLegs, ...bundle.tripLegs],
+          passengers: [...state.passengers, ...bundle.passengers],
+          activityLogs: [bundle.activityLog, ...state.activityLogs],
+          notifications: [bundle.notification, ...state.notifications],
+        })),
+
+      addRequest: (request: VehicleRequest) =>
+        set((state) => ({ requests: [request, ...state.requests] })),
+
+      updateRequest: (request: VehicleRequest) =>
+        set((state) => ({
+          requests: state.requests.map((r) => (r.id === request.id ? request : r)),
+        })),
+
+      addTripLeg: (tripLeg: TripLeg) =>
+        set((state) => ({ tripLegs: [...state.tripLegs, tripLeg] })),
+
+      updateTripLeg: (tripLeg: TripLeg) =>
+        set((state) => ({
+          tripLegs: state.tripLegs.map((l) => (l.id === tripLeg.id ? tripLeg : l)),
+        })),
+
+      addAssignment: (assignment: Assignment) =>
+        set((state) => ({ assignments: [...state.assignments, assignment] })),
+
+      updateAssignment: (assignment: Assignment) =>
+        set((state) => ({
+          assignments: state.assignments.map((a) => (a.id === assignment.id ? assignment : a)),
+        })),
+
+      addPassenger: (passenger: Passenger) =>
+        set((state) => ({ passengers: [...state.passengers, passenger] })),
+
+      addActivityLog: (log: ActivityLog) =>
+        set((state) => ({ activityLogs: [log, ...state.activityLogs] })),
+
+      addNotification: (notification: Notification) =>
+        set((state) => ({ notifications: [notification, ...state.notifications] })),
+
+      markNotificationRead: (notificationId: string) =>
+        set((state) => ({
+          notifications: state.notifications.map((n) =>
+            n.id === notificationId ? { ...n, read: true } : n
+          ),
+        })),
+
+      updateVehicleStatus: (vehicleId: string, status: VehicleStatus) =>
+        set((state) => ({
+          vehicles: state.vehicles.map((v) => (v.id === vehicleId ? { ...v, status } : v)),
+        })),
+
+      updateDriverStatus: (driverId: string, status: DriverStatus) =>
+        set((state) => ({
+          drivers: state.drivers.map((d) => (d.id === driverId ? { ...d, status } : d)),
+        })),
+
+      resetData: () => {
+        const freshSeed = getSeedData();
+        set({
+          users: freshSeed.users,
+          vehicles: freshSeed.vehicles,
+          drivers: freshSeed.drivers,
+          requests: freshSeed.requests,
+          tripLegs: freshSeed.tripLegs,
+          assignments: freshSeed.assignments,
+          passengers: freshSeed.passengers,
+          activityLogs: freshSeed.activityLogs,
+          notifications: freshSeed.notifications,
+        });
+      },
+    }),
+    {
+      name: 'fleetflow_state_storage',
+      storage: createJSONStorage(() => {
+        // Safe SSR check for Next.js App Router
+        if (typeof window !== 'undefined') {
+          return window.localStorage;
+        }
+        return {
+          getItem: () => null,
+          setItem: () => {},
+          removeItem: () => {},
+        };
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.setHydrated(true);
+        }
+      },
+    }
+  )
+);

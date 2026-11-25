@@ -1,0 +1,131 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Canvas & Surface Architecture */
+    --background: 210 20% 98%;          /* #F8FAFC - Light Neutral Slate-50 backdrop */
+    --foreground: 222 47% 11%;          /* #0F172A - Deep Slate-900 high-contrast body text */
+
+    --card: 0 0% 100%;                  /* #FFFFFF - Pure Optical White elevated surfaces */
+    --card-foreground: 222 47% 11%;     /* #0F172A - High-contrast text on card surfaces */
+
+    --popover: 0 0% 100%;               /* #FFFFFF - Dropdown & popover surface */
+    --popover-foreground: 222 47% 11%;
+
+    /* Primary Brand: Deep Corporate Navy (#16223C) */
+    --primary: 222 47% 16%;
+    --primary-foreground: 210 40% 98%;   /* #F8FAFC - Off-white button text */
+
+    /* Secondary Brand Accent: Transit Sapphire (#1D4ED8) */
+    --accent: 224 76% 48%;
+    --accent-foreground: 0 0% 100%;     /* #FFFFFF */
+
+    /* Secondary & Muted Surfaces */
+    --secondary: 210 40% 96.1%;         /* #F1F5F9 - Slate-100 secondary fill */
+    --secondary-foreground: 222 47% 11.2%;
+    --muted: 210 40% 96.1%;             /* #F1F5F9 - Slate-100 muted container tint */
+    --muted-foreground: 215.4 16.3% 46.9%; /* #64748B - Slate-500 metadata text */
+
+    /* Framing, Input Boundaries & Focus Rings */
+    --border: 214.3 31.8% 91.4%;        /* #E2E8F0 - Slate-200 crisp divider border */
+    --input: 214.3 31.8% 91.4%;         /* #E2E8F0 - Default input boundary */
+    --ring: 224 76% 48%;                /* #1D4ED8 - Transit Sapphire focus ring */
+
+    /* Form Validation Error State */
+    --destructive: 0 84.2% 60.2%;       /* #EF4444 - Red-500 validation error & cancellation */
+    --destructive-foreground: 210 40% 98%;
+
+    /* Structural Geometry */
+    --radius: 0.5rem;                   /* 8px (rounded-lg) */
+  }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222 47% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 224 76% 48%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224 76% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1, "cv02" 1, "cv03" 1, "cv04" 1, "cv11" 1, "tnum" 1;
+  }
+}
+
+@layer utilities {
+  /* Semantic Status Rails (4px solid left accent) matching exact domain enums */
+  .status-rail-pending {
+    border-left-width: 4px;
+    border-left-color: #f59e0b; /* Amber-500 */
+  }
+  .status-rail-approved {
+    border-left-width: 4px;
+    border-left-color: #2563eb; /* Blue-600 */
+  }
+  .status-rail-assigned {
+    border-left-width: 4px;
+    border-left-color: #4f46e5; /* Indigo-600 */
+  }
+  .status-rail-accepted {
+    border-left-width: 4px;
+    border-left-color: #0284c7; /* Sky-600 */
+  }
+  .status-rail-arrived-at-pickup {
+    border-left-width: 4px;
+    border-left-color: #0d9488; /* Teal-600 */
+  }
+  .status-rail-picked-up {
+    border-left-width: 4px;
+    border-left-color: #2563eb; /* Blue-600 */
+  }
+  .status-rail-in-progress {
+    border-left-width: 4px;
+    border-left-color: #9333ea; /* Purple-600 */
+  }
+  .status-rail-dropped-off {
+    border-left-width: 4px;
+    border-left-color: #0891b2; /* Cyan-600 */
+  }
+  .status-rail-completed {
+    border-left-width: 4px;
+    border-left-color: #059669; /* Emerald-600 */
+  }
+  .status-rail-cancelled {
+    border-left-width: 4px;
+    border-left-color: #94a3b8; /* Slate-400 */
+  }
+  .status-rail-rejected {
+    border-left-width: 4px;
+    border-left-color: #e11d48; /* Rose-600 */
+  }
+}
