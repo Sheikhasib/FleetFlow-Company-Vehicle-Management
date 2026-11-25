@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { offlineSyncService } from '@/services/offline-sync-service';
+import {
+  offlineSyncService,
+  sortPendingActionsDeterministically,
+} from '@/services/offline-sync-service';
 import { tripService } from '@/services/trip-service';
 import { useFleetFlowStore } from '@/stores/fleetflow-store';
 import { tripLegRepository } from '@/repositories/mock/mock-trip-leg-repository';
@@ -1607,6 +1610,520 @@ describe('OfflineSyncService — Queueing, Reconciliation, Conflict & Session Is
       expect(offlineSyncService.getPendingActionsForUser('usr_drv_01')).toHaveLength(0);
       expect(offlineSyncService.getPendingActionsForUser('usr_drv_02')).toHaveLength(0);
       expect(offlineSyncService.isSyncing()).toBe(false);
+    });
+  });
+
+  describe('Stage 5.4 Task 3 — Deterministic Offline Queue Ordering', () => {
+    async function createAssignedLeg(legId: string, driverId = 'drv_01', vehicleId = 'veh_01') {
+      await tripLegRepository.create({
+        id: legId,
+        requestId: 'req_003',
+        legType: 'OUTBOUND',
+        pickupLocation: 'Main Depot',
+        destination: `Destination ${legId}`,
+        scheduledDeparture: '2026-11-29T08:00:00Z',
+        scheduledArrival: '2026-11-29T10:00:00Z',
+        status: 'ASSIGNED',
+      });
+
+      await assignmentRepository.create({
+        id: `asg_${legId}`,
+        tripLegId: legId,
+        vehicleId,
+        driverId,
+        assignedAt: '2026-11-29T07:30:00Z',
+        status: 'ACTIVE',
+      });
+    }
+
+    it('1. preserves chronological ordering when queuedAt timestamps differ', async () => {
+      await createAssignedLeg('leg_chrono_early');
+      await createAssignedLeg('leg_chrono_late', 'drv_01', 'veh_02');
+
+      // Enqueue later timestamp first, earlier timestamp second
+      useFleetFlowStore.getState().enqueuePendingAction({
+        id: 'act_a_late',
+        tripLegId: 'leg_chrono_late',
+        actorUserId: 'usr_drv_01',
+        actionType: 'ACCEPT_TRIP',
+        currentStatus: 'ASSIGNED',
+        targetStatus: 'ACCEPTED',
+        queuedAt: '2026-11-29T10:05:00.000Z',
+        status: 'PENDING',
+        retryCount: 0,
+      });
+
+      useFleetFlowStore.getState().enqueuePendingAction({
+        id: 'act_z_early',
+        tripLegId: 'leg_chrono_early',
+        actorUserId: 'usr_drv_01',
+        actionType: 'ACCEPT_TRIP',
+        currentStatus: 'ASSIGNED',
+        targetStatus: 'ACCEPTED',
+        queuedAt: '2026-11-29T10:00:00.000Z',
+        status: 'PENDING',
+        retryCount: 0,
+      });
+
+      const executionOrder: string[] = [];
+      vi.spyOn(tripService, 'acceptTrip').mockImplementation(async (legId) => {
+        executionOrder.push(legId);
+        return {} as TripLeg;
+      });
+
+      const res = await offlineSyncService.sync('usr_drv_01');
+      expect(res).toEqual({ processed: 2, succeeded: 2, failed: 0, errors: [] });
+      expect(executionOrder).toEqual(['leg_chrono_early', 'leg_chrono_late']);
+    });
+
+    it('2. preserves original enqueue order for identical queuedAt timestamps regardless of action IDs', async () => {
+      const identicalTimestamp = '2026-11-29T09:00:00.000Z';
+      await createAssignedLeg('leg_id_tie_1');
+      await createAssignedLeg('leg_id_tie_2', 'drv_01', 'veh_02');
+      await createAssignedLeg('leg_id_tie_3', 'drv_01', 'veh_03');
+
+      // Intentionally assign reverse-alphabetical IDs to verify comparator does NOT sort by ID
+      useFleetFlowStore.getState().enqueuePendingAction({
+        id: 'act_z_first',
+        tripLegId: 'leg_id_tie_1',
+        actorUserId: 'usr_drv_01',
+        actionType: 'ACCEPT_TRIP',
+        currentStatus: 'ASSIGNED',
+        targetStatus: 'ACCEPTED',
+        queuedAt: identicalTimestamp,
+        status: 'PENDING',
+        retryCount: 0,
+      });
+      useFleetFlowStore.getState().enqueuePendingAction({
+        id: 'act_m_second',
+        tripLegId: 'leg_id_tie_2',
+        actorUserId: 'usr_drv_01',
+        actionType: 'ACCEPT_TRIP',
+        currentStatus: 'ASSIGNED',
+        targetStatus: 'ACCEPTED',
+        queuedAt: identicalTimestamp,
+        status: 'PENDING',
+        retryCount: 0,
+      });
+      useFleetFlowStore.getState().enqueuePendingAction({
+        id: 'act_a_third',
+        tripLegId: 'leg_id_tie_3',
+        actorUserId: 'usr_drv_01',
+        actionType: 'ACCEPT_TRIP',
+        currentStatus: 'ASSIGNED',
+        targetStatus: 'ACCEPTED',
+        queuedAt: identicalTimestamp,
+        status: 'PENDING',
+        retryCount: 0,
+      });
+
+      const sorted = sortPendingActionsDeterministically(
+        useFleetFlowStore.getState().pendingActions
+      );
+      expect(sorted.map((a) => a.id)).toEqual(['act_z_first', 'act_m_second', 'act_a_third']);
+
+      const executedLegs: string[] = [];
+      vi.spyOn(tripService, 'acceptTrip').mockImplementation(async (legId) => {
+        executedLegs.push(legId);
+        return {} as TripLeg;
+      });
+
+      const res = await offlineSyncService.sync('usr_drv_01');
+      expect(res.succeeded).toBe(3);
+      expect(executedLegs).toEqual(['leg_id_tie_1', 'leg_id_tie_2', 'leg_id_tie_3']);
+    });
+
+    it('3. preserves exact enqueue order for multiple equal-timestamp actions produced via enqueueAction across legs', async () => {
+      await createAssignedLeg('leg_eq_C');
+      await createAssignedLeg('leg_eq_A', 'drv_01', 'veh_02');
+      await createAssignedLeg('leg_eq_B', 'drv_01', 'veh_03');
+
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date('2026-11-29T11:00:00.000Z'));
+
+        offlineSyncService.enqueueAction({
+          tripLegId: 'leg_eq_C',
+          actorUserId: 'usr_drv_01',
+          actionType: 'ACCEPT_TRIP',
+          currentStatus: 'ASSIGNED',
+          targetStatus: 'ACCEPTED',
+        });
+        offlineSyncService.enqueueAction({
+          tripLegId: 'leg_eq_A',
+          actorUserId: 'usr_drv_01',
+          actionType: 'ACCEPT_TRIP',
+          currentStatus: 'ASSIGNED',
+          targetStatus: 'ACCEPTED',
+        });
+        offlineSyncService.enqueueAction({
+          tripLegId: 'leg_eq_B',
+          actorUserId: 'usr_drv_01',
+          actionType: 'ACCEPT_TRIP',
+          currentStatus: 'ASSIGNED',
+          targetStatus: 'ACCEPTED',
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+
+      const executionOrder: string[] = [];
+      vi.spyOn(tripService, 'acceptTrip').mockImplementation(async (legId) => {
+        executionOrder.push(legId);
+        return {} as TripLeg;
+      });
+
+      const res = await offlineSyncService.sync('usr_drv_01');
+      expect(res).toEqual({ processed: 3, succeeded: 3, failed: 0, errors: [] });
+      expect(executionOrder).toEqual(['leg_eq_C', 'leg_eq_A', 'leg_eq_B']);
+    });
+
+    it('4. enforces same-leg FIFO progression when all lifecycle steps share identical queuedAt', async () => {
+      const legId = 'leg_same_eq_fifo';
+      await createAssignedLeg(legId);
+
+      const identicalTimestamp = '2026-11-29T12:00:00.000Z';
+      useFleetFlowStore.getState().enqueuePendingAction({
+        id: 'act_step_3', // deliberately non-ordered IDs
+        tripLegId: legId,
+        actorUserId: 'usr_drv_01',
+        actionType: 'ACCEPT_TRIP',
+        currentStatus: 'ASSIGNED',
+        targetStatus: 'ACCEPTED',
+        queuedAt: identicalTimestamp,
+        status: 'PENDING',
+        retryCount: 0,
+      });
+      useFleetFlowStore.getState().enqueuePendingAction({
+        id: 'act_step_1',
+        tripLegId: legId,
+        actorUserId: 'usr_drv_01',
+        actionType: 'MARK_ARRIVED',
+        currentStatus: 'ACCEPTED',
+        targetStatus: 'ARRIVED_AT_PICKUP',
+        queuedAt: identicalTimestamp,
+        status: 'PENDING',
+        retryCount: 0,
+      });
+      useFleetFlowStore.getState().enqueuePendingAction({
+        id: 'act_step_2',
+        tripLegId: legId,
+        actorUserId: 'usr_drv_01',
+        actionType: 'CONFIRM_PICKUP',
+        currentStatus: 'ARRIVED_AT_PICKUP',
+        targetStatus: 'PICKED_UP',
+        queuedAt: identicalTimestamp,
+        status: 'PENDING',
+        retryCount: 0,
+      });
+
+      // Execute against real TripService transition state machine
+      const res = await offlineSyncService.sync('usr_drv_01');
+      expect(res).toEqual({ processed: 3, succeeded: 3, failed: 0, errors: [] });
+
+      const finalLeg = await tripLegRepository.getById(legId);
+      expect(finalLeg?.status).toBe('PICKED_UP');
+      expect(offlineSyncService.getPendingActionsForUser('usr_drv_01')).toHaveLength(0);
+    });
+
+    it('5. maintains equal-timestamp ordering across repeated syncs and blocks out-of-order execution past FAILED actions', async () => {
+      const legA = 'leg_rep_A';
+      const legB = 'leg_rep_B';
+      const legC = 'leg_rep_C';
+      await createAssignedLeg(legA);
+      await createAssignedLeg(legB, 'drv_01', 'veh_02');
+      await createAssignedLeg(legC, 'drv_01', 'veh_03');
+
+      const ts = '2026-11-29T13:00:00.000Z';
+
+      // Enqueue: legA step1 -> legA step2 -> legB step1 (all identical timestamp)
+      useFleetFlowStore.getState().enqueuePendingAction({
+        id: 'act_rep_A1',
+        tripLegId: legA,
+        actorUserId: 'usr_drv_01',
+        actionType: 'ACCEPT_TRIP',
+        currentStatus: 'ASSIGNED',
+        targetStatus: 'ACCEPTED',
+        queuedAt: ts,
+        status: 'PENDING',
+        retryCount: 0,
+      });
+      useFleetFlowStore.getState().enqueuePendingAction({
+        id: 'act_rep_A2',
+        tripLegId: legA,
+        actorUserId: 'usr_drv_01',
+        actionType: 'MARK_ARRIVED',
+        currentStatus: 'ACCEPTED',
+        targetStatus: 'ARRIVED_AT_PICKUP',
+        queuedAt: ts,
+        status: 'PENDING',
+        retryCount: 0,
+      });
+      useFleetFlowStore.getState().enqueuePendingAction({
+        id: 'act_rep_B1',
+        tripLegId: legB,
+        actorUserId: 'usr_drv_01',
+        actionType: 'ACCEPT_TRIP',
+        currentStatus: 'ASSIGNED',
+        targetStatus: 'ACCEPTED',
+        queuedAt: ts,
+        status: 'PENDING',
+        retryCount: 0,
+      });
+
+      const executionLog: string[] = [];
+      let failLegA = true;
+      const controlledAcceptSpy = vi
+        .spyOn(tripService, 'acceptTrip')
+        .mockImplementation(async (legId) => {
+          executionLog.push(`ACCEPT:${legId}`);
+          if (legId === legA && failLegA) {
+            throw new Error('Transient legA failure');
+          }
+          return {} as TripLeg;
+        });
+      const controlledArrivedSpy = vi
+        .spyOn(tripService, 'markArrivedAtPickup')
+        .mockImplementation(async (legId) => {
+          executionLog.push(`ARRIVED:${legId}`);
+          return {} as TripLeg;
+        });
+
+      const res1 = await offlineSyncService.sync('usr_drv_01');
+      expect(res1.processed).toBe(2);
+      expect(res1.succeeded).toBe(1);
+      expect(res1.failed).toBe(1);
+      expect(executionLog).toEqual([`ACCEPT:${legA}`, `ACCEPT:${legB}`]);
+
+      // legA step1 is FAILED, legA step2 remains PENDING, legB removed
+      let queue = offlineSyncService.getPendingActionsForUser('usr_drv_01');
+      expect(queue.map((a) => `${a.id}:${a.status}`)).toEqual([
+        'act_rep_A1:FAILED',
+        'act_rep_A2:PENDING',
+      ]);
+
+      // Enqueue unrelated legC action with same timestamp while legA step1 is still FAILED
+      useFleetFlowStore.getState().enqueuePendingAction({
+        id: 'act_rep_C1',
+        tripLegId: legC,
+        actorUserId: 'usr_drv_01',
+        actionType: 'ACCEPT_TRIP',
+        currentStatus: 'ASSIGNED',
+        targetStatus: 'ACCEPTED',
+        queuedAt: ts,
+        status: 'PENDING',
+        retryCount: 0,
+      });
+
+      // Sync 2: legA step2 MUST NOT execute out of order while act_rep_A1 is FAILED;
+      // unrelated legC progresses independently
+      const res2 = await offlineSyncService.sync('usr_drv_01');
+      expect(res2).toEqual({ processed: 1, succeeded: 1, failed: 0, errors: [] });
+      expect(executionLog).toEqual([`ACCEPT:${legA}`, `ACCEPT:${legB}`, `ACCEPT:${legC}`]);
+
+      // Retry legA step1 and verify Sync 3 executes A1 strictly BEFORE A2
+      failLegA = false;
+      const retried = await offlineSyncService.retryAction('act_rep_A1');
+      expect(retried).toBe(true);
+
+      expect(executionLog).toEqual([
+        `ACCEPT:${legA}`,
+        `ACCEPT:${legB}`,
+        `ACCEPT:${legC}`,
+        `ACCEPT:${legA}`,
+        `ARRIVED:${legA}`,
+      ]);
+      expect(controlledAcceptSpy).toHaveBeenCalledTimes(4);
+      expect(controlledArrivedSpy).toHaveBeenCalledTimes(1);
+
+      queue = offlineSyncService.getPendingActionsForUser('usr_drv_01');
+      expect(queue).toHaveLength(0);
+    });
+
+    it('6. preserves persisted equal-timestamp queue order across Zustand serialization and reload', async () => {
+      await createAssignedLeg('leg_reload_2');
+      await createAssignedLeg('leg_reload_1', 'drv_01', 'veh_02');
+      await createAssignedLeg('leg_reload_3', 'drv_01', 'veh_03');
+
+      const ts = '2026-11-29T14:00:00.000Z';
+
+      useFleetFlowStore.getState().enqueuePendingAction({
+        id: 'act_r_z',
+        tripLegId: 'leg_reload_2',
+        actorUserId: 'usr_drv_01',
+        actionType: 'ACCEPT_TRIP',
+        currentStatus: 'ASSIGNED',
+        targetStatus: 'ACCEPTED',
+        queuedAt: ts,
+        status: 'PENDING',
+        retryCount: 0,
+      });
+      useFleetFlowStore.getState().enqueuePendingAction({
+        id: 'act_r_a',
+        tripLegId: 'leg_reload_1',
+        actorUserId: 'usr_drv_01',
+        actionType: 'ACCEPT_TRIP',
+        currentStatus: 'ASSIGNED',
+        targetStatus: 'ACCEPTED',
+        queuedAt: ts,
+        status: 'PENDING',
+        retryCount: 0,
+      });
+      useFleetFlowStore.getState().enqueuePendingAction({
+        id: 'act_r_m',
+        tripLegId: 'leg_reload_3',
+        actorUserId: 'usr_drv_01',
+        actionType: 'ACCEPT_TRIP',
+        currentStatus: 'ASSIGNED',
+        targetStatus: 'ACCEPTED',
+        queuedAt: ts,
+        status: 'PENDING',
+        retryCount: 0,
+      });
+
+      // Simulate full JSON serialization to localStorage and reload/rehydration into fresh store
+      const persistedPayload = JSON.stringify({
+        state: {
+          pendingActions: useFleetFlowStore.getState().pendingActions,
+          isSimulatedOffline: false,
+          currentUserId: 'usr_drv_01',
+        },
+        version: 1,
+      });
+
+      // Clear in-memory queue (simulating app restart before rehydration)
+      useFleetFlowStore.setState({ pendingActions: [] });
+      expect(useFleetFlowStore.getState().pendingActions).toHaveLength(0);
+
+      // Parse persisted JSON and run store migrate + rehydrate
+      const parsed = JSON.parse(persistedPayload);
+      const migrateFn = useFleetFlowStore.persist.getOptions().migrate;
+      const migratedState = migrateFn
+        ? await migrateFn(parsed.state, parsed.version)
+        : parsed.state;
+
+      useFleetFlowStore.setState({
+        pendingActions: (migratedState as { pendingActions: typeof parsed.state.pendingActions })
+          .pendingActions,
+      });
+
+      const executionOrder: string[] = [];
+      vi.spyOn(tripService, 'acceptTrip').mockImplementation(async (legId) => {
+        executionOrder.push(legId);
+        return {} as TripLeg;
+      });
+
+      const res = await offlineSyncService.sync('usr_drv_01');
+      expect(res).toEqual({ processed: 3, succeeded: 3, failed: 0, errors: [] });
+      expect(executionOrder).toEqual(['leg_reload_2', 'leg_reload_1', 'leg_reload_3']);
+    });
+
+    it('7. ensures actor filtering does not reorder remaining equal-timestamp actions for any actor', async () => {
+      const driver2: User = {
+        id: 'usr_drv_02',
+        name: 'Second Driver',
+        email: 'driver2@company.com',
+        phone: '+880 1711-222222',
+        role: 'DRIVER',
+        department: 'Logistics',
+      };
+      useFleetFlowStore.setState({
+        users: [...useFleetFlowStore.getState().users, driver2],
+        drivers: [
+          ...useFleetFlowStore.getState().drivers,
+          {
+            id: 'drv_02',
+            userId: 'usr_drv_02',
+            phone: '+880 1711-222222',
+            status: 'AVAILABLE',
+          },
+        ],
+      });
+
+      await createAssignedLeg('leg_d1_1', 'drv_01', 'veh_01');
+      await createAssignedLeg('leg_d2_1', 'drv_02', 'veh_02');
+      await createAssignedLeg('leg_d1_2', 'drv_01', 'veh_03');
+      await createAssignedLeg('leg_d2_2', 'drv_02', 'veh_04');
+      await createAssignedLeg('leg_d1_3', 'drv_01', 'veh_05');
+
+      const ts = '2026-11-29T15:00:00.000Z';
+
+      // Interleave Driver 1 and Driver 2 actions with identical timestamps
+      useFleetFlowStore.getState().enqueuePendingAction({
+        id: 'act_d1_z',
+        tripLegId: 'leg_d1_1',
+        actorUserId: 'usr_drv_01',
+        actionType: 'ACCEPT_TRIP',
+        currentStatus: 'ASSIGNED',
+        targetStatus: 'ACCEPTED',
+        queuedAt: ts,
+        status: 'PENDING',
+        retryCount: 0,
+      });
+      useFleetFlowStore.getState().enqueuePendingAction({
+        id: 'act_d2_x',
+        tripLegId: 'leg_d2_1',
+        actorUserId: 'usr_drv_02',
+        actionType: 'ACCEPT_TRIP',
+        currentStatus: 'ASSIGNED',
+        targetStatus: 'ACCEPTED',
+        queuedAt: ts,
+        status: 'PENDING',
+        retryCount: 0,
+      });
+      useFleetFlowStore.getState().enqueuePendingAction({
+        id: 'act_d1_a',
+        tripLegId: 'leg_d1_2',
+        actorUserId: 'usr_drv_01',
+        actionType: 'ACCEPT_TRIP',
+        currentStatus: 'ASSIGNED',
+        targetStatus: 'ACCEPTED',
+        queuedAt: ts,
+        status: 'PENDING',
+        retryCount: 0,
+      });
+      useFleetFlowStore.getState().enqueuePendingAction({
+        id: 'act_d2_y',
+        tripLegId: 'leg_d2_2',
+        actorUserId: 'usr_drv_02',
+        actionType: 'ACCEPT_TRIP',
+        currentStatus: 'ASSIGNED',
+        targetStatus: 'ACCEPTED',
+        queuedAt: ts,
+        status: 'PENDING',
+        retryCount: 0,
+      });
+      useFleetFlowStore.getState().enqueuePendingAction({
+        id: 'act_d1_m',
+        tripLegId: 'leg_d1_3',
+        actorUserId: 'usr_drv_01',
+        actionType: 'ACCEPT_TRIP',
+        currentStatus: 'ASSIGNED',
+        targetStatus: 'ACCEPTED',
+        queuedAt: ts,
+        status: 'PENDING',
+        retryCount: 0,
+      });
+
+      const d1Filtered = offlineSyncService.getPendingActionsForUser('usr_drv_01');
+      expect(d1Filtered.map((a) => a.tripLegId)).toEqual(['leg_d1_1', 'leg_d1_2', 'leg_d1_3']);
+
+      const d1Order: string[] = [];
+      const d2Order: string[] = [];
+      vi.spyOn(tripService, 'acceptTrip').mockImplementation(async (legId, actorUserId) => {
+        if (actorUserId === 'usr_drv_01') d1Order.push(legId);
+        if (actorUserId === 'usr_drv_02') d2Order.push(legId);
+        return {} as TripLeg;
+      });
+
+      const res1 = await offlineSyncService.sync('usr_drv_01');
+      expect(res1).toEqual({ processed: 3, succeeded: 3, failed: 0, errors: [] });
+      expect(d1Order).toEqual(['leg_d1_1', 'leg_d1_2', 'leg_d1_3']);
+
+      // Driver 2's relative order remains completely intact
+      const res2 = await offlineSyncService.sync('usr_drv_02');
+      expect(res2).toEqual({ processed: 2, succeeded: 2, failed: 0, errors: [] });
+      expect(d2Order).toEqual(['leg_d2_1', 'leg_d2_2']);
     });
   });
 });

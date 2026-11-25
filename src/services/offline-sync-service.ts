@@ -14,6 +14,33 @@ import { assignmentRepository } from '@/repositories/mock/mock-assignment-reposi
 import { activityLogRepository } from '@/repositories/mock/mock-activity-log-repository';
 
 /**
+ * Deterministically sorts pending actions in chronological FIFO order.
+ * - Primary key: `queuedAt` timestamp ascending (epoch ms; invalid timestamps normalize to 0).
+ * - Explicit tie-breaker: original queue index (`enqueueOrder`) ascending, guaranteeing a strict
+ *   total order that preserves persisted enqueue order for identical timestamps without relying
+ *   on implicit sort stability, random values, or action IDs.
+ */
+export function sortPendingActionsDeterministically(
+  actions: readonly DriverPendingAction[]
+): DriverPendingAction[] {
+  return actions
+    .map((action, enqueueOrder) => ({ action, enqueueOrder }))
+    .sort((a, b) => {
+      const timeA = Date.parse(a.action.queuedAt);
+      const timeB = Date.parse(b.action.queuedAt);
+      const safeTimeA = Number.isNaN(timeA) ? 0 : timeA;
+      const safeTimeB = Number.isNaN(timeB) ? 0 : timeB;
+
+      if (safeTimeA !== safeTimeB) {
+        return safeTimeA - safeTimeB;
+      }
+
+      return a.enqueueOrder - b.enqueueOrder;
+    })
+    .map((entry) => entry.action);
+}
+
+/**
  * Asynchronous FIFO Mutex providing mutual exclusion across async operations.
  * Prevents overlapping critical section executions while chaining queued requests safely.
  */
@@ -207,25 +234,29 @@ export class OfflineSyncService {
       store.updatePendingAction(stale.id, { status: 'PENDING' });
     }
 
-    // 2. Isolate strictly to the authenticated user's actions
-    const pendingActions = this.getPendingActionsForUser(currentUserId).filter(
-      (a) => a.status === 'PENDING'
-    );
-
-    if (pendingActions.length === 0) {
+    // 2. Isolate strictly to the authenticated user's queue (preserving persisted enqueue order)
+    const userActions = this.getPendingActionsForUser(currentUserId);
+    if (!userActions.some((a) => a.status === 'PENDING')) {
       return results;
     }
 
-    // 3. Sort in strict chronological FIFO order
-    const sortedQueue = [...pendingActions].sort(
-      (a, b) => new Date(a.queuedAt).getTime() - new Date(b.queuedAt).getTime()
-    );
+    // 3. Sort deterministically in chronological FIFO order with explicit enqueue-index tie-breaker
+    const sortedQueue = sortPendingActionsDeterministically(userActions);
 
-    // Map of legs that have failed to prevent cascading replay of subsequent steps on that leg
+    // Map of legs that have unresolved FAILED actions (prior or current run) to prevent out-of-order replay
     const haltedLegs = new Set<string>();
 
     try {
       for (const action of sortedQueue) {
+        if (action.status === 'FAILED') {
+          haltedLegs.add(action.tripLegId);
+          continue;
+        }
+
+        if (action.status !== 'PENDING') {
+          continue;
+        }
+
         if (haltedLegs.has(action.tripLegId)) {
           continue;
         }
