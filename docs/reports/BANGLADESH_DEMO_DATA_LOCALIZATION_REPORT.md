@@ -43,8 +43,8 @@ All changes strictly adhere to the project constraints:
 | User ID | Driver ID | Original Persona | Localized Bangladeshi Persona | Localized Email | Department | Contact Phone | Assigned Vehicle |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | `usr_drv_01` | `drv_01` | Marcus Vance | **Abdul Karim** | `abdul.karim@fleetflow.com` | Transportation Services | `+880-1811-030101` | `veh_02` (Toyota Camry) |
-| `usr_drv_02` | `drv_02` | James Wilson | **Md. Rafiqul Islam** | `rafiqul.islam@fleetflow.com` | Transportation Services | `+880-1811-030202` | `veh_01` (Toyota HiAce) |
-| `usr_drv_03` | `drv_03` | Carlos Mendez | **Abdur Rahim** | `abdur.rahim@fleetflow.com` | Transportation Services | `+880-1811-030303` | `veh_04` (Toyota Allion) |
+| `usr_drv_02` | `drv_02` | James Wilson | **Md. Rafiqul Islam** | `rafiqul.islam@fleetflow.com` | Transportation Services | `+880-1811-030202` | `veh_01` (Ford Transit) |
+| `usr_drv_03` | `drv_03` | Carlos Mendez | **Abdur Rahim** | `abdur.rahim@fleetflow.com` | Transportation Services | `+880-1811-030303` | `veh_04` (Honda Accord) |
 
 ---
 
@@ -93,12 +93,12 @@ All occurrences in `src/lib/constants/domain.ts` (`COMPANY_LOCATIONS`) and `src/
 
 ## 5. Vehicle Inventory
 
-| Vehicle ID | Registration | Localized Model | Seating Capacity | Seed Operational Status |
+| Vehicle ID | Registration | Original Model (Preserved) | Seating Capacity | Seed Operational Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `veh_01` | `FLT-1010` | **Toyota HiAce Passenger Van** | 8 | `IN_USE` |
+| `veh_01` | `FLT-1010` | **Ford Transit Passenger Van** | 8 | `IN_USE` |
 | `veh_02` | `FLT-2020` | **Toyota Camry Hybrid Sedan** | 4 | `IN_USE` |
-| `veh_03` | `FLT-3030` | **Toyota Coaster Executive Mini-Coach** | 12 | `AVAILABLE` |
-| `veh_04` | `FLT-4040` | **Toyota Allion Sedan** | 4 | `IN_USE` |
+| `veh_03` | `FLT-3030` | **Mercedes-Benz Sprinter Executive** | 12 | `AVAILABLE` |
+| `veh_04` | `FLT-4040` | **Honda Accord Hybrid** | 4 | `IN_USE` |
 
 ---
 

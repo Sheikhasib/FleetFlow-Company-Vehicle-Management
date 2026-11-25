@@ -120,7 +120,7 @@ export function getSeedData(baseDate = new Date()): SeedData {
       {
         id: "veh_01",
         registrationNumber: "FLT-1010",
-        model: "Toyota HiAce Passenger Van",
+        model: "Ford Transit Passenger Van",
         capacity: 8,
         status: "IN_USE", // Allocated to active trip req_004
       },
@@ -134,14 +134,14 @@ export function getSeedData(baseDate = new Date()): SeedData {
       {
         id: "veh_03",
         registrationNumber: "FLT-3030",
-        model: "Toyota Coaster Executive Mini-Coach",
+        model: "Mercedes-Benz Sprinter Executive",
         capacity: 12,
         status: "AVAILABLE",
       },
       {
         id: "veh_04",
         registrationNumber: "FLT-4040",
-        model: "Toyota Allion Sedan",
+        model: "Honda Accord Hybrid",
         capacity: 4,
         status: "IN_USE", // Allocated to active trip req_005
       },
