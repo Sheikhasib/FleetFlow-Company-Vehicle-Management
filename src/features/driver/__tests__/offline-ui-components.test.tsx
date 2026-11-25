@@ -8,6 +8,46 @@ import { DriverActiveHero } from '../components/driver-active-hero';
 import { useFleetFlowStore } from '@/stores/fleetflow-store';
 import { DriverTripCardViewModel } from '../types/view-models';
 
+interface CapturedButton {
+  text: string;
+  onClick?: () => void;
+  title?: string;
+}
+
+const capturedButtons: CapturedButton[] = [];
+
+function extractNodeText(node: React.ReactNode): string {
+  if (node == null || typeof node === 'boolean') return '';
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(extractNodeText).join('');
+  if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
+    return extractNodeText(node.props.children);
+  }
+  return '';
+}
+
+vi.mock('@/components/ui/button', async () => {
+  const actual = await vi.importActual<typeof import('@/components/ui/button')>(
+    '@/components/ui/button'
+  );
+  const ActualButton = actual.Button;
+  const WrappedButton = React.forwardRef<HTMLButtonElement, React.ComponentProps<typeof ActualButton>>(
+    (props, ref) => {
+      capturedButtons.push({
+        text: extractNodeText(props.children).trim(),
+        onClick: props.onClick as (() => void) | undefined,
+        title: props.title,
+      });
+      return <ActualButton ref={ref} {...props} />;
+    }
+  );
+  WrappedButton.displayName = 'Button';
+  return {
+    ...actual,
+    Button: WrappedButton,
+  };
+});
+
 // Mock useFleetFlowStore to evaluate selectors against current store state in Node SSR
 vi.mock('@/stores/fleetflow-store', async () => {
   const actual = await vi.importActual<any>('@/stores/fleetflow-store');
@@ -48,11 +88,72 @@ const mockTrip: DriverTripCardViewModel = {
 
 describe('Offline UI Components (SSR / Static Rendering)', () => {
   beforeEach(() => {
+    capturedButtons.length = 0;
     useFleetFlowStore.getState().resetData();
     useFleetFlowStore.setState({ isSimulatedOffline: false, pendingActions: [] });
   });
 
   describe('OfflineIndicatorBanner', () => {
+    it('renders the demo offline toggle in normal online state with an empty queue', () => {
+      useFleetFlowStore.setState({
+        currentUserId: 'usr_drv_01',
+        isSimulatedOffline: false,
+        pendingActions: [],
+      });
+
+      const html = renderToStaticMarkup(<OfflineIndicatorBanner />);
+      expect(html).toContain('Online');
+      expect(html).toContain('Demo: Simulate Offline');
+      expect(html).not.toContain('Working in Offline Mode');
+      expect(html).not.toContain('Queue (');
+      expect(html).not.toContain('Sync Now');
+    });
+
+    it('clicks Demo: Simulate Offline and Exit Demo Offline to toggle store state and UI mode', () => {
+      useFleetFlowStore.setState({
+        currentUserId: 'usr_drv_01',
+        isSimulatedOffline: false,
+        pendingActions: [],
+      });
+
+      capturedButtons.length = 0;
+      const onlineHtml = renderToStaticMarkup(<OfflineIndicatorBanner />);
+      expect(onlineHtml).toContain('Online');
+      expect(onlineHtml).toContain('Demo: Simulate Offline');
+      expect(useFleetFlowStore.getState().isSimulatedOffline).toBe(false);
+
+      const simulateOfflineButton = capturedButtons.find((b) =>
+        b.text.includes('Demo: Simulate Offline')
+      );
+      expect(simulateOfflineButton).toBeDefined();
+      expect(simulateOfflineButton?.onClick).toBeTypeOf('function');
+
+      // Click "Demo: Simulate Offline"
+      simulateOfflineButton!.onClick!();
+      expect(useFleetFlowStore.getState().isSimulatedOffline).toBe(true);
+
+      capturedButtons.length = 0;
+      const offlineHtml = renderToStaticMarkup(<OfflineIndicatorBanner />);
+      expect(offlineHtml).toContain('Working in Offline Mode');
+      expect(offlineHtml).toContain('Exit Demo Offline');
+
+      const exitOfflineButton = capturedButtons.find((b) =>
+        b.text.includes('Exit Demo Offline')
+      );
+      expect(exitOfflineButton).toBeDefined();
+      expect(exitOfflineButton?.onClick).toBeTypeOf('function');
+
+      // Click "Exit Demo Offline"
+      exitOfflineButton!.onClick!();
+      expect(useFleetFlowStore.getState().isSimulatedOffline).toBe(false);
+
+      capturedButtons.length = 0;
+      const resumedHtml = renderToStaticMarkup(<OfflineIndicatorBanner />);
+      expect(resumedHtml).toContain('Online');
+      expect(resumedHtml).toContain('Demo: Simulate Offline');
+      expect(resumedHtml).not.toContain('Working in Offline Mode');
+    });
+
     it('renders offline warning message when in simulated offline mode', () => {
       useFleetFlowStore.setState({ isSimulatedOffline: true });
 

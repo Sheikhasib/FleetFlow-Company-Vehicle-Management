@@ -114,6 +114,48 @@ describe('Phase 4 Admin Services Unit Tests', () => {
     });
   });
 
+  describe('Assignment Selection Priority (FND-006)', () => {
+    it('prioritizes genuinely in-flight assignments over earlier ASSIGNED legs in seed data consistently across Driver and Vehicle directories', async () => {
+      const drivers = await driverService.getDriverDirectory();
+      const vehicles = await vehicleService.getVehicleDirectory();
+
+      // In seed data, asg_003_out (leg_003_out, ASSIGNED) appears before asg_006_out (leg_006_out, ARRIVED_AT_PICKUP)
+      const drv01 = drivers.find((d) => d.id === 'drv_01');
+      const veh02 = vehicles.find((v) => v.id === 'veh_02');
+
+      expect(drv01?.activeAssignment?.assignmentId).toBe('asg_006_out');
+      expect(drv01?.activeAssignment?.tripLegId).toBe('leg_006_out');
+      expect(drv01?.activeAssignment?.legStatus).toBe('ARRIVED_AT_PICKUP');
+
+      expect(veh02?.activeAssignment?.assignmentId).toBe('asg_006_out');
+      expect(veh02?.activeAssignment?.tripLegId).toBe('leg_006_out');
+      expect(veh02?.activeAssignment?.legStatus).toBe('ARRIVED_AT_PICKUP');
+    });
+
+    it('falls back to the first ACTIVE assignment consistently when no assignment is in flight', async () => {
+      // Force all active legs for drv_01 / veh_02 back to ASSIGNED (non-in-flight)
+      useFleetFlowStore.setState((state) => ({
+        tripLegs: state.tripLegs.map((leg) =>
+          leg.id === 'leg_006_out' ? { ...leg, status: 'ASSIGNED' } : leg
+        ),
+      }));
+
+      const drivers = await driverService.getDriverDirectory();
+      const vehicles = await vehicleService.getVehicleDirectory();
+
+      const drv01 = drivers.find((d) => d.id === 'drv_01');
+      const veh02 = vehicles.find((v) => v.id === 'veh_02');
+
+      expect(drv01?.activeAssignment?.assignmentId).toBe('asg_003_out');
+      expect(drv01?.activeAssignment?.tripLegId).toBe('leg_003_out');
+      expect(drv01?.activeAssignment?.legStatus).toBe('ASSIGNED');
+
+      expect(veh02?.activeAssignment?.assignmentId).toBe('asg_003_out');
+      expect(veh02?.activeAssignment?.tripLegId).toBe('leg_003_out');
+      expect(veh02?.activeAssignment?.legStatus).toBe('ASSIGNED');
+    });
+  });
+
   describe('AnalyticsService', () => {
     it('returns comprehensive dashboard summary', async () => {
       const summary = await analyticsService.getDashboardSummary();

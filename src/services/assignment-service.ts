@@ -8,6 +8,7 @@ import { activityLogRepository } from '@/repositories/mock/mock-activity-log-rep
 import { notificationRepository } from '@/repositories/mock/mock-notification-repository';
 import { useFleetFlowStore } from '@/stores/fleetflow-store';
 import { isActiveTripStatus } from '@/lib/constants/domain';
+import { generateUniqueId } from '@/lib/utils/id';
 
 export interface TimeWindow {
   start: string; // ISO 8601
@@ -141,9 +142,41 @@ export class AssignmentService {
     driverId: string,
     adminId: string
   ): Promise<Assignment> {
+    // 1. Enforce ADMIN authorization at the service boundary
+    if (!adminId || typeof adminId !== 'string') {
+      throw new Error('Unauthorized: Authenticated administrator User ID is required.');
+    }
+    const users = useFleetFlowStore.getState().users;
+    const actor = users.find((u) => u.id === adminId);
+    if (!actor) {
+      throw new Error(`Unauthorized: Invalid or unknown actor user ID: ${adminId}`);
+    }
+    if (actor.role !== 'ADMIN') {
+      throw new Error(
+        `Unauthorized: User ${actor.id} (${actor.name}) with role ${actor.role} cannot create assignments. ADMIN role required.`
+      );
+    }
+
+    // 2. Resolve target TripLeg and require PENDING_ASSIGNMENT status
     const leg = await tripLegRepository.getById(tripLegId);
     if (!leg) {
       throw new Error(`Trip leg not found: ${tripLegId}`);
+    }
+    if (leg.status !== 'PENDING_ASSIGNMENT') {
+      throw new Error(
+        `Trip leg ${tripLegId} cannot be assigned from status ${leg.status}. Must be PENDING_ASSIGNMENT.`
+      );
+    }
+
+    // 3. Reject duplicate active assignments for the same TripLeg
+    const existingAssignments = await assignmentRepository.getAll();
+    const existingActiveForLeg = existingAssignments.find(
+      (a) => a.tripLegId === tripLegId && a.status === 'ACTIVE'
+    );
+    if (existingActiveForLeg) {
+      throw new Error(
+        `Trip leg ${tripLegId} already has an active assignment (${existingActiveForLeg.id}).`
+      );
     }
 
     const request = await vehicleRequestRepository.getById(leg.requestId);
@@ -188,7 +221,7 @@ export class AssignmentService {
     }
 
     // Create Assignment
-    const assignmentId = `asg_${Date.now()}`;
+    const assignmentId = `asg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const timestamp = new Date().toISOString();
 
     const assignment: Assignment = {
@@ -232,7 +265,7 @@ export class AssignmentService {
 
     // Audit Log
     await activityLogRepository.create({
-      id: `act_${Date.now()}`,
+      id: generateUniqueId('act'),
       requestId: request.id,
       tripLegId,
       actorId: adminId,
@@ -243,7 +276,7 @@ export class AssignmentService {
 
     // Notifications for Driver and Employee
     await notificationRepository.create({
-      id: `notif_${Date.now()}_drv`,
+      id: generateUniqueId('notif', 'drv'),
       recipientId: driver.userId,
       title: 'New Trip Leg Assignment',
       message: `You have been assigned to trip leg ${leg.id} departing at ${leg.scheduledDeparture}.`,
@@ -253,7 +286,7 @@ export class AssignmentService {
     });
 
     await notificationRepository.create({
-      id: `notif_${Date.now()}_emp`,
+      id: generateUniqueId('notif', 'emp'),
       recipientId: request.requesterId,
       title: 'Driver and Vehicle Dispatched',
       message: `Vehicle (${vehicle.model} - ${vehicle.registrationNumber}) has been assigned to your journey.`,

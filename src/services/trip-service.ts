@@ -8,6 +8,7 @@ import { activityLogRepository } from '@/repositories/mock/mock-activity-log-rep
 import { notificationRepository } from '@/repositories/mock/mock-notification-repository';
 import { VALID_TRIP_TRANSITIONS, isActiveTripStatus } from '@/lib/constants/domain';
 import { useFleetFlowStore } from '@/stores/fleetflow-store';
+import { generateUniqueId } from '@/lib/utils/id';
 
 export class TripService {
   /**
@@ -93,7 +94,7 @@ export class TripService {
 
     // Audit log
     await activityLogRepository.create({
-      id: `act_${Date.now()}`,
+      id: generateUniqueId('act'),
       requestId: leg.requestId,
       tripLegId: leg.id,
       actorId: resolvedActorId,
@@ -113,7 +114,7 @@ export class TripService {
     if (request) {
       // Notify employee
       await notificationRepository.create({
-        id: `notif_${Date.now()}`,
+        id: generateUniqueId('notif'),
         recipientId: request.requesterId,
         title: `Trip Update: ${actionName.replace(/_/g, ' ')}`,
         message: actionNarrative,
@@ -187,7 +188,7 @@ export class TripService {
       });
 
       await activityLogRepository.create({
-        id: `act_${Date.now()}_all_comp`,
+        id: generateUniqueId('act', 'all_comp'),
         requestId: request.id,
         actorId: 'system',
         action: 'REQUEST_COMPLETED',
@@ -196,7 +197,7 @@ export class TripService {
       });
 
       await notificationRepository.create({
-        id: `notif_${Date.now()}_comp`,
+        id: generateUniqueId('notif', 'comp'),
         recipientId: request.requesterId,
         title: 'Transportation Request Completed',
         message: `Your transportation request (${request.id}) has been completed in full.`,

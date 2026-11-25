@@ -159,22 +159,22 @@ export default function AdminTripMonitoringPage() {
     try {
       if (nextAction === 'ACCEPT') {
         await tripService.acceptTrip(leg.id, actorUserId);
-        setActionFeedback('Trip marked ACCEPTED by driver.');
+        setActionFeedback('Trip status updated to ACCEPTED by administrator.');
       } else if (nextAction === 'ARRIVE_PICKUP') {
         await tripService.markArrivedAtPickup(leg.id, actorUserId);
-        setActionFeedback('Driver reported ARRIVED AT PICKUP.');
+        setActionFeedback('Trip status updated to ARRIVED AT PICKUP by administrator.');
       } else if (nextAction === 'CONFIRM_PICKUP') {
         await tripService.confirmPickup(leg.id, actorUserId);
-        setActionFeedback('Passengers confirmed boarded (PICKED UP).');
+        setActionFeedback('Trip status updated to PICKED UP (passengers boarded) by administrator.');
       } else if (nextAction === 'START_TRIP') {
         await tripService.startTrip(leg.id, actorUserId);
-        setActionFeedback('Trip started; vehicle in transit (IN PROGRESS).');
+        setActionFeedback('Trip status updated to IN PROGRESS by administrator.');
       } else if (nextAction === 'CONFIRM_DROPOFF') {
         await tripService.confirmDropoff(leg.id, actorUserId);
-        setActionFeedback('Driver confirmed arrival at destination (DROPPED OFF).');
+        setActionFeedback('Trip status updated to DROPPED OFF (arrival confirmed) by administrator.');
       } else if (nextAction === 'COMPLETE') {
         await tripService.completeTrip(leg.id, actorUserId);
-        setActionFeedback('Trip finalized and marked COMPLETED.');
+        setActionFeedback('Trip finalized and marked COMPLETED by administrator.');
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to update trip status.';
@@ -577,14 +577,14 @@ export default function AdminTripMonitoringPage() {
                   </div>
                 </div>
 
-                {/* 3. Driver Status Simulation / Advancement Actions (Administrative Controls) */}
+                {/* 3. Administrative Trip Status Progression Controls */}
                 <div className="p-3.5 rounded-lg border border-border bg-muted/20 space-y-2">
                   <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                     <CheckCircle2 className="h-4 w-4 text-primary" />
-                    <span>Driver Milestone Confirmation & Progression</span>
+                    <span>Administrative Trip Status Controls</span>
                   </span>
                   <p className="text-[11px] text-muted-foreground">
-                    Record explicit driver-reported milestone progress. Updates synchronize across Employee and Driver portals.
+                    Advance trip milestone status on behalf of operations. Updates synchronize across Employee and Driver portals.
                   </p>
 
                   <div className="flex flex-wrap gap-2 pt-1">
@@ -595,7 +595,7 @@ export default function AdminTripMonitoringPage() {
                         disabled={isUpdatingStatus}
                         className="text-xs h-8"
                       >
-                        Confirm Driver Accepted
+                        Mark Trip Accepted
                       </Button>
                     )}
                     {selectedLeg.status === 'ACCEPTED' && (

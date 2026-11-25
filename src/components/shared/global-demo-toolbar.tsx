@@ -100,7 +100,7 @@ export function GlobalDemoToolbar() {
             <span className="text-slate-600">|</span>
             <span className="inline-flex items-center gap-1 text-slate-400 text-xs">
               <ShieldCheck className="h-3.5 w-3.5 text-blue-400" />
-              Phase 3A Interactive
+              Interactive Demo
             </span>
           </div>
 
@@ -125,7 +125,7 @@ export function GlobalDemoToolbar() {
                 onChange={handleUserChange}
                 className="bg-transparent text-slate-200 text-xs focus:outline-none cursor-pointer pr-1"
               >
-                <optgroup label="Employees (Phase 3A Available)">
+                <optgroup label="Employees">
                   {users
                     .filter((u) => u.role === 'EMPLOYEE')
                     .map((u) => (
@@ -134,7 +134,7 @@ export function GlobalDemoToolbar() {
                       </option>
                     ))}
                 </optgroup>
-                <optgroup label="Admin (Phase 4 Preview)">
+                <optgroup label="Admin">
                   {users
                     .filter((u) => u.role === 'ADMIN')
                     .map((u) => (
@@ -143,7 +143,7 @@ export function GlobalDemoToolbar() {
                       </option>
                     ))}
                 </optgroup>
-                <optgroup label="Driver (Phase 5 Preview)">
+                <optgroup label="Driver">
                   {users
                     .filter((u) => u.role === 'DRIVER')
                     .map((u) => (
@@ -226,7 +226,7 @@ export function GlobalDemoToolbar() {
             {/* Employees */}
             <div>
               <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-2 pb-1.5">
-                Employees (Phase 3A Available)
+                Employees
               </div>
               <div className="space-y-1">
                 {users
@@ -259,7 +259,7 @@ export function GlobalDemoToolbar() {
             {/* Admin */}
             <div>
               <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-2 pb-1.5 pt-2 border-t">
-                Admin (Phase 4 Preview)
+                Admin
               </div>
               <div className="space-y-1">
                 {users
@@ -292,7 +292,7 @@ export function GlobalDemoToolbar() {
             {/* Driver */}
             <div>
               <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-2 pb-1.5 pt-2 border-t">
-                Driver (Phase 5 Preview)
+                Driver
               </div>
               <div className="space-y-1">
                 {users

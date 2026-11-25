@@ -7,8 +7,23 @@ import { useFleetFlowStore } from '@/stores/fleetflow-store';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
+import { UserRole } from '@/types/domain';
+
 export interface AdminAuthGuardProps {
   children: React.ReactNode;
+}
+
+export function getAdminGuardFallbackTarget(role?: UserRole): {
+  label: string;
+  href: string;
+} {
+  if (role === 'EMPLOYEE') {
+    return { label: 'Employee', href: '/employee/dashboard' };
+  }
+  if (role === 'DRIVER') {
+    return { label: 'Driver', href: '/driver/dashboard' };
+  }
+  return { label: 'Login', href: '/login' };
 }
 
 /**
@@ -66,19 +81,18 @@ export function AdminAuthGuard({ children }: AdminAuthGuardProps) {
                 <span>Switch to Admin (Arif Hasan)</span>
                 <ArrowRight className="h-4 w-4" />
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (currentUser?.role === 'EMPLOYEE') {
-                    router.push('/employee/dashboard');
-                  } else {
-                    router.push('/login');
-                  }
-                }}
-                className="w-full sm:w-auto"
-              >
-                Return to {currentUser?.role === 'EMPLOYEE' ? 'Employee' : 'Login'}
-              </Button>
+              {(() => {
+                const fallback = getAdminGuardFallbackTarget(currentUser?.role);
+                return (
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push(fallback.href)}
+                    className="w-full sm:w-auto"
+                  >
+                    Return to {fallback.label}
+                  </Button>
+                );
+              })()}
             </div>
           </CardContent>
         </Card>

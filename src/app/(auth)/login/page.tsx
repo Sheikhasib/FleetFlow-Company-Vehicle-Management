@@ -44,7 +44,7 @@ export default function LoginPage() {
       <div className="text-center space-y-3 max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary">
           <Car className="h-4 w-4" />
-          <span>FleetFlow Prototype • Phase 3A</span>
+          <span>FleetFlow Corporate Fleet Demo</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
           Corporate Vehicle Request & Trip Coordination
@@ -56,15 +56,15 @@ export default function LoginPage() {
 
       {/* Personas Section */}
       <div className="space-y-6">
-        {/* Employees (Phase 3A Focus) */}
+        {/* Employees */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold flex items-center gap-2 text-foreground">
               <User className="h-4 w-4 text-primary" />
-              <span>Employee Personas (Interactive Phase 3A)</span>
+              <span>Employee Personas</span>
             </h2>
             <Badge variant="default" className="text-xs bg-emerald-600">
-              Full Access Ready
+              Employee Portal
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground">
@@ -101,7 +101,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Admin & Driver (Preview Boundaries) */}
+        {/* Admin & Driver */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
           {/* Admin */}
           <div className="space-y-3">
@@ -111,7 +111,7 @@ export default function LoginPage() {
                 <span>Fleet Administrator</span>
               </h3>
               <Badge variant="outline" className="text-[10px] text-blue-700 border-blue-200">
-                Phase 4 Preview
+                Admin Portal
               </Badge>
             </div>
             {admins.map((adm) => (
@@ -141,7 +141,7 @@ export default function LoginPage() {
                 <span>Fleet Driver</span>
               </h3>
               <Badge variant="outline" className="text-[10px] text-violet-700 border-violet-200">
-                Phase 5 Preview
+                Driver Portal
               </Badge>
             </div>
             {drivers.map((drv) => (

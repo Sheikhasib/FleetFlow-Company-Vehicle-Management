@@ -3,20 +3,16 @@ import { driverRepository } from '@/repositories/mock/mock-driver-repository';
 import { assignmentRepository } from '@/repositories/mock/mock-assignment-repository';
 import { tripLegRepository } from '@/repositories/mock/mock-trip-leg-repository';
 import { useFleetFlowStore } from '@/stores/fleetflow-store';
+import {
+  ResourceActiveAssignment,
+  selectPrioritizedActiveAssignment,
+} from '@/lib/utils/assignment-selection';
 
 export interface DriverDirectoryItem extends Driver {
   name: string;
   email: string;
   department: string;
-  activeAssignment?: {
-    assignmentId: string;
-    tripLegId: string;
-    requestId: string;
-    pickupLocation: string;
-    destination: string;
-    scheduledDeparture: string;
-    legStatus: string;
-  };
+  activeAssignment?: ResourceActiveAssignment;
 }
 
 export interface DriverSummary {
@@ -39,23 +35,8 @@ export class DriverService {
 
     return drivers.map((d) => {
       const user = userMap.get(d.userId);
-      const activeAsg = activeAssignments.find((a) => a.driverId === d.id);
-      let activeAssignment: DriverDirectoryItem['activeAssignment'] = undefined;
-
-      if (activeAsg) {
-        const leg = legMap.get(activeAsg.tripLegId);
-        if (leg) {
-          activeAssignment = {
-            assignmentId: activeAsg.id,
-            tripLegId: leg.id,
-            requestId: leg.requestId,
-            pickupLocation: leg.pickupLocation,
-            destination: leg.destination,
-            scheduledDeparture: leg.scheduledDeparture,
-            legStatus: leg.status,
-          };
-        }
-      }
+      const driverActiveAssignments = activeAssignments.filter((a) => a.driverId === d.id);
+      const activeAssignment = selectPrioritizedActiveAssignment(driverActiveAssignments, legMap);
 
       return {
         ...d,

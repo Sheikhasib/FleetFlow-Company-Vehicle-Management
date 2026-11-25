@@ -2,17 +2,13 @@ import { Vehicle, VehicleStatus } from '@/types/domain';
 import { vehicleRepository } from '@/repositories/mock/mock-vehicle-repository';
 import { assignmentRepository } from '@/repositories/mock/mock-assignment-repository';
 import { tripLegRepository } from '@/repositories/mock/mock-trip-leg-repository';
+import {
+  ResourceActiveAssignment,
+  selectPrioritizedActiveAssignment,
+} from '@/lib/utils/assignment-selection';
 
 export interface VehicleDirectoryItem extends Vehicle {
-  activeAssignment?: {
-    assignmentId: string;
-    tripLegId: string;
-    requestId: string;
-    pickupLocation: string;
-    destination: string;
-    scheduledDeparture: string;
-    legStatus: string;
-  };
+  activeAssignment?: ResourceActiveAssignment;
 }
 
 export interface VehicleSummary {
@@ -32,23 +28,8 @@ export class VehicleService {
     const activeAssignments = assignments.filter((a) => a.status === 'ACTIVE');
 
     return vehicles.map((v) => {
-      const activeAsg = activeAssignments.find((a) => a.vehicleId === v.id);
-      let activeAssignment: VehicleDirectoryItem['activeAssignment'] = undefined;
-
-      if (activeAsg) {
-        const leg = legMap.get(activeAsg.tripLegId);
-        if (leg) {
-          activeAssignment = {
-            assignmentId: activeAsg.id,
-            tripLegId: leg.id,
-            requestId: leg.requestId,
-            pickupLocation: leg.pickupLocation,
-            destination: leg.destination,
-            scheduledDeparture: leg.scheduledDeparture,
-            legStatus: leg.status,
-          };
-        }
-      }
+      const vehicleActiveAssignments = activeAssignments.filter((a) => a.vehicleId === v.id);
+      const activeAssignment = selectPrioritizedActiveAssignment(vehicleActiveAssignments, legMap);
 
       return {
         ...v,
